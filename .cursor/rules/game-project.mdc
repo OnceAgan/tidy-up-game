@@ -1,0 +1,10 @@
+---
+description: Браузерная 3D cozy-игра tidy-up-game (Vite + Three.js)
+globs: src/**/*
+alwaysApply: false
+---
+
+- Стек: Vite + TypeScript + Three.js; без React
+- Полное ТЗ в AGENTS.md в корне репозитория
+- Один MVP-шаг за раз; не ломать FPS-управление при новых фичах
+- Placeholder-геометрия; не добавлять npm-пакеты без запроса
