@@ -3,6 +3,8 @@ export class InputManager {
   private pointerLocked = false
   private mouseDeltaX = 0
   private mouseDeltaY = 0
+  private interactQueued = false
+  private hintSuppressed = false
   private readonly domElement: HTMLElement
   private readonly hintEl: HTMLElement | null
 
@@ -27,6 +29,12 @@ export class InputManager {
     return this.pointerLocked
   }
 
+  /** Скрыть стартовую подсказку (например, на экране победы) */
+  suppressHint(): void {
+    this.hintSuppressed = true
+    this.hintEl?.classList.add('hidden')
+  }
+
   isDown(code: string): boolean {
     return this.keys.has(code)
   }
@@ -38,17 +46,25 @@ export class InputManager {
     return delta
   }
 
+  consumeInteract(): boolean {
+    if (!this.interactQueued) return false
+    this.interactQueued = false
+    return true
+  }
+
   private onClick(): void {
+    if (this.hintSuppressed) return
     if (!this.pointerLocked) {
       this.domElement.requestPointerLock()
+      return
     }
+    this.interactQueued = true
   }
 
   private onPointerLockChange(): void {
     this.pointerLocked = document.pointerLockElement === this.domElement
-    if (this.hintEl) {
-      this.hintEl.classList.toggle('hidden', this.pointerLocked)
-    }
+    if (!this.hintEl || this.hintSuppressed) return
+    this.hintEl.classList.toggle('hidden', this.pointerLocked)
   }
 
   private onKeyDown(e: KeyboardEvent): void {

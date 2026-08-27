@@ -10,15 +10,18 @@ export class Engine {
 
   constructor(container: HTMLElement) {
     this.camera = new THREE.PerspectiveCamera(75, 1, 0.1, 100)
-    this.camera.position.set(0, 1.6, 0)
+    this.camera.position.set(0, 0, 0)
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true })
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     this.renderer.shadowMap.enabled = true
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping
+    this.renderer.toneMappingExposure = 1.05
     container.appendChild(this.renderer.domElement)
 
-    this.scene.background = new THREE.Color(0xc9b8a0)
-    this.scene.fog = new THREE.Fog(0xc9b8a0, 12, 28)
+    this.scene.background = new THREE.Color(0xb8a890)
+    this.scene.fog = new THREE.Fog(0xb8a890, 14, 32)
 
     this.handleResize = this.handleResize.bind(this)
     window.addEventListener('resize', this.handleResize)
