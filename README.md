@@ -17,7 +17,7 @@ npm install
 npm run dev
 ```
 
-Открыть в браузере: **http://localhost:5173/**
+Открыть в браузере: **http://127.0.0.1:5173/** (локально) или **https://onceagan.github.io/tidy-up-game/** (онлайн)
 
 ## Каждый день — запуск игры
 

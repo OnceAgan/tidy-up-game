@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { getGenre } from '../data/cassetteCatalog'
+import { getCoverImageUrl } from '../data/coverFiles'
 
 function hexToCss(hex: number): string {
   const r = (hex >> 16) & 0xff
@@ -138,8 +139,52 @@ function drawGenreArt(ctx: CanvasRenderingContext2D, genreId: number, x: number,
   ctx.restore()
 }
 
-/** Крупная читаемая обложка VHS */
-export function createCoverTexture(title: string, genreId: number, indexInGenre: number): THREE.CanvasTexture {
+/** Обложка: PNG из public/covers, иначе процедурная заглушка */
+export function createCoverTexture(
+  title: string,
+  genreId: number,
+  indexInGenre: number,
+  onLoaded?: (tex: THREE.Texture) => void,
+): THREE.Texture {
+  const fallback = createProceduralCoverTexture(title, genreId, indexInGenre)
+
+  const loader = new THREE.TextureLoader()
+  loader.load(
+    getCoverImageUrl(genreId, indexInGenre),
+    (loaded) => {
+      applyCoverTextureSettings(loaded)
+      onLoaded?.(loaded)
+      fallback.dispose()
+    },
+    undefined,
+    () => {
+      onLoaded?.(fallback)
+    },
+  )
+
+  return fallback
+}
+
+function applyCoverTextureSettings(tex: THREE.Texture): void {
+  tex.colorSpace = THREE.SRGBColorSpace
+  tex.anisotropy = 8
+  tex.minFilter = THREE.LinearMipmapLinearFilter
+  tex.magFilter = THREE.LinearFilter
+  tex.generateMipmaps = true
+  tex.wrapS = THREE.ClampToEdgeWrapping
+  tex.wrapT = THREE.ClampToEdgeWrapping
+  tex.repeat.set(1, 1)
+  tex.offset.set(0, 0)
+  tex.center.set(0.5, 0.5)
+  tex.needsUpdate = true
+}
+
+/** Процедурная заглушка, если PNG ещё не положили */
+function createProceduralCoverTexture(
+  title: string,
+  genreId: number,
+  indexInGenre: number,
+): THREE.CanvasTexture {
   const genre = getGenre(genreId)
   const w = 768
   const h = 1152

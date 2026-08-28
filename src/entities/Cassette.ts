@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { Interactable } from './Interactable'
 import { createCoverTexture, createSpineTexture } from '../env/coverArt'
+import { createCassetteGeometry } from './cassetteGeometry'
 
 export const CASSETTE_SIZE = { w: 0.32, h: 0.51, d: 0.068 }
 
@@ -33,7 +34,12 @@ export class Cassette extends Interactable {
     this.title = title
     this.indexInGenre = indexInGenre
 
-    const coverTex = createCoverTexture(title, genreId, indexInGenre)
+    const coverTex = createCoverTexture(title, genreId, indexInGenre, (tex) => {
+      this.coverMaterial.map = tex
+      backMaterial.map = tex
+      this.coverMaterial.needsUpdate = true
+      backMaterial.needsUpdate = true
+    })
     const spineTex = createSpineTexture(title, genreId, indexInGenre)
 
     this.coverMaterial = new THREE.MeshStandardMaterial({
@@ -68,29 +74,12 @@ export class Cassette extends Interactable {
     this.materials = [this.spineMaterial, this.spineMaterial, top, bottom, this.coverMaterial, backMaterial]
 
     this.mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(CASSETTE_SIZE.w, CASSETTE_SIZE.h, CASSETTE_SIZE.d),
+      createCassetteGeometry(CASSETTE_SIZE.w, CASSETTE_SIZE.h, CASSETTE_SIZE.d),
       this.materials,
     )
     this.mesh.castShadow = true
     this.mesh.receiveShadow = true
     this.mesh.userData.interactable = this
-
-    const lipMat = new THREE.MeshStandardMaterial({ color: 0xf2ede4, roughness: 0.45 })
-    const lipT = 0.006
-    const hw = CASSETTE_SIZE.w / 2
-    const hh = CASSETTE_SIZE.h / 2
-    const hd = CASSETTE_SIZE.d / 2
-    const lips: Array<[number, number, number, number, number, number]> = [
-      [CASSETTE_SIZE.w + lipT * 2, lipT, lipT, 0, hh - lipT / 2, hd + lipT / 2],
-      [CASSETTE_SIZE.w + lipT * 2, lipT, lipT, 0, -hh + lipT / 2, hd + lipT / 2],
-      [lipT, CASSETTE_SIZE.h, lipT, hw - lipT / 2, 0, hd + lipT / 2],
-      [-lipT, CASSETTE_SIZE.h, lipT, -hw + lipT / 2, 0, hd + lipT / 2],
-    ]
-    for (const [lw, lh, ld, lx, ly, lz] of lips) {
-      const lip = new THREE.Mesh(new THREE.BoxGeometry(lw, lh, ld), lipMat)
-      lip.position.set(lx, ly, lz)
-      this.mesh.add(lip)
-    }
   }
 
   protected applyHighlight(on: boolean): void {
