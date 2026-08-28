@@ -2,16 +2,16 @@ import * as THREE from 'three'
 import { Tween, Easing, Group as TweenGroup } from '@tweenjs/tween.js'
 import type { Raycast } from '../core/Raycast'
 import type { Crosshair } from '../ui/Crosshair'
-import { CASSETTE_SIZE, type Cassette } from '../entities/Cassette'
+import { CASSETTE_SIZE, HOLD_CASSETTE_ROT, type Cassette } from '../entities/Cassette'
 import type { ShelfSlot } from '../entities/ShelfSlot'
 import type { Interactable } from '../entities/Interactable'
 
 const MAX_STACK = 5
-const STACK_STEP = CASSETTE_SIZE.d + 0.008
+/** Вертикальная стопка торцами к камере */
+const STACK_STEP = CASSETTE_SIZE.h * 0.9
 
-/** Стопка справа внизу, ракурс ¾ — виден торец и верх */
-const HOLD_POS = new THREE.Vector3(0.32, -0.26, -0.52)
-const HOLD_ROT = new THREE.Euler(-0.5, 0.95, 0.18)
+const HOLD_POS = new THREE.Vector3(0.46, -0.08, -0.58)
+const HOLD_ROT = new THREE.Euler(-0.1, -0.72, 0.05)
 
 export class InteractionManager {
   private readonly stack: Cassette[] = []
@@ -45,6 +45,14 @@ export class InteractionManager {
     this.holdRoot.position.copy(HOLD_POS)
     this.holdRoot.rotation.copy(HOLD_ROT)
     this.camera.add(this.holdRoot)
+  }
+
+  get heldStack(): readonly Cassette[] {
+    return this.stack
+  }
+
+  get hoveredTarget(): Interactable | null {
+    return this.hovered
   }
 
   update(): void {
@@ -82,6 +90,20 @@ export class InteractionManager {
     }
   }
 
+  /** Колёсико: верхняя кассета уходит вниз стопки */
+  cycleStack(direction: number): void {
+    if (this.busy || this.stack.length < 2 || direction === 0) return
+
+    if (direction > 0) {
+      const top = this.stack.pop()!
+      this.stack.unshift(top)
+    } else {
+      const bottom = this.stack.shift()!
+      this.stack.push(bottom)
+    }
+    this.relayoutStack(true)
+  }
+
   private resolveTarget(): Interactable | null {
     const targets: Interactable[] = []
 
@@ -109,16 +131,15 @@ export class InteractionManager {
 
     this.holdRoot.attach(cassette.mesh)
     cassette.mesh.position.copy(this.holdRoot.worldToLocal(startPos.clone()))
-    // лежат плашмя в стопке: торец (тонкая грань) смотрит «на камеру» стопки
-    cassette.mesh.rotation.set(Math.PI / 2, 0, 0)
+    this.applyStackRotation(cassette.mesh)
 
     const index = this.stack.length - 1
     const end = this.slotLocalPos(index)
 
-    // чуть пододвинуть уже лежащие в стопке
     for (let i = 0; i < index; i++) {
       const pos = this.slotLocalPos(i)
       const mesh = this.stack[i].mesh
+      this.applyStackRotation(mesh)
       new Tween(mesh.position, this.tweens)
         .to({ x: pos.x, y: pos.y, z: pos.z }, 140)
         .easing(Easing.Quadratic.Out)
@@ -169,16 +190,19 @@ export class InteractionManager {
     this.relayoutStack(true)
   }
 
+  private applyStackRotation(mesh: THREE.Mesh): void {
+    mesh.rotation.copy(HOLD_CASSETTE_ROT)
+  }
+
   private slotLocalPos(index: number): THREE.Vector3 {
-    // лёгкий сдвиг, чтобы стопка читалась
-    const wobble = (index % 2 === 0 ? 1 : -1) * 0.004 * index
-    return new THREE.Vector3(wobble, index * STACK_STEP, wobble * 0.5)
+    const side = index % 2 === 0 ? 1 : -1
+    return new THREE.Vector3(side * 0.016 * index, index * STACK_STEP, index * 0.028)
   }
 
   private relayoutStack(animate: boolean): void {
     this.stack.forEach((cassette, index) => {
       const end = this.slotLocalPos(index)
-      cassette.mesh.rotation.set(Math.PI / 2, 0, 0)
+      this.applyStackRotation(cassette.mesh)
       if (!animate) {
         cassette.mesh.position.copy(end)
         return

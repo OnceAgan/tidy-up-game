@@ -1,8 +1,10 @@
 import * as THREE from 'three'
 import type { RoomBounds } from '../entities/Player'
 import { Cassette } from '../entities/Cassette'
+import { floorCenterY } from '../entities/cassettePlacement'
 import { Shelf } from '../entities/Shelf'
 import type { ShelfSlot } from '../entities/ShelfSlot'
+import { buildCassettePool } from '../data/cassetteCatalog'
 import {
   createCeilingTexture,
   createWallpaperTexture,
@@ -14,8 +16,7 @@ const ROOM_SIZE = 10
 const WALL_HEIGHT = 3.2
 const WALL_THICKNESS = 0.2
 const SHELF_DIST = 4.55
-const SHELF_COLOR_INDICES = [0, 1, 2, 3] as const
-const BOOKS_PER_COLOR = 6
+const SHELF_GENRE_IDS = [0, 1, 2, 3] as const
 
 export class LevelManager {
   readonly bounds: RoomBounds = {
@@ -104,15 +105,15 @@ export class LevelManager {
   }
 
   private buildShelves(): void {
-    const placements: Array<{ colorIndex: number; x: number; z: number; rot: number }> = [
-      { colorIndex: SHELF_COLOR_INDICES[0], x: 0, z: -SHELF_DIST, rot: 0 },
-      { colorIndex: SHELF_COLOR_INDICES[1], x: 0, z: SHELF_DIST, rot: Math.PI },
-      { colorIndex: SHELF_COLOR_INDICES[2], x: -SHELF_DIST, z: 0, rot: Math.PI / 2 },
-      { colorIndex: SHELF_COLOR_INDICES[3], x: SHELF_DIST, z: 0, rot: -Math.PI / 2 },
+    const placements: Array<{ genreId: number; x: number; z: number; rot: number }> = [
+      { genreId: SHELF_GENRE_IDS[0], x: 0, z: -SHELF_DIST, rot: 0 },
+      { genreId: SHELF_GENRE_IDS[1], x: 0, z: SHELF_DIST, rot: Math.PI },
+      { genreId: SHELF_GENRE_IDS[2], x: -SHELF_DIST, z: 0, rot: Math.PI / 2 },
+      { genreId: SHELF_GENRE_IDS[3], x: SHELF_DIST, z: 0, rot: -Math.PI / 2 },
     ]
 
     for (const p of placements) {
-      const shelf = new Shelf(p.colorIndex, p.x, p.z, p.rot)
+      const shelf = new Shelf(p.genreId, p.x, p.z, p.rot)
       this.shelves.push(shelf)
       this.slots.push(...shelf.slots)
       this.root.add(shelf.root)
@@ -120,20 +121,16 @@ export class LevelManager {
   }
 
   private spawnCassettes(): void {
-    const colorBag: number[] = []
-    for (const colorIndex of SHELF_COLOR_INDICES) {
-      for (let i = 0; i < BOOKS_PER_COLOR; i++) {
-        colorBag.push(colorIndex)
-      }
-    }
-    shuffle(colorBag)
+    const pool = buildCassettePool()
+    shuffle(pool)
 
-    const spots = scatterSpots(colorBag.length)
-    colorBag.forEach((colorIndex, i) => {
+    const spots = scatterSpots(pool.length)
+    pool.forEach((def, i) => {
       const spot = spots[i]
-      const cassette = new Cassette(colorIndex)
-      cassette.mesh.position.set(spot.x, 0.095, spot.z)
-      cassette.mesh.rotation.y = spot.ry
+      const rot = new THREE.Euler(spot.rx, spot.ry, spot.rz)
+      const cassette = new Cassette(def.genreId, def.title, def.indexInGenre)
+      cassette.mesh.position.set(spot.x, floorCenterY(rot), spot.z)
+      cassette.mesh.rotation.copy(rot)
       this.root.add(cassette.mesh)
       this.cassettes.push(cassette)
     })
@@ -147,8 +144,8 @@ function shuffle<T>(arr: T[]): void {
   }
 }
 
-function scatterSpots(count: number): Array<{ x: number; z: number; ry: number }> {
-  const spots: Array<{ x: number; z: number; ry: number }> = []
+function scatterSpots(count: number): Array<{ x: number; z: number; rx: number; ry: number; rz: number }> {
+  const spots: Array<{ x: number; z: number; rx: number; ry: number; rz: number }> = []
   const minR = 0.6
   const maxR = 3.2
   let guard = 0
@@ -158,14 +155,22 @@ function scatterSpots(count: number): Array<{ x: number; z: number; ry: number }
     const r = minR + Math.random() * (maxR - minR)
     const x = Math.cos(angle) * r
     const z = Math.sin(angle) * r
-    if (spots.some((s) => (s.x - x) ** 2 + (s.z - z) ** 2 < 0.22)) continue
-    spots.push({ x, z, ry: Math.random() * Math.PI * 2 })
+    if (spots.some((s) => (s.x - x) ** 2 + (s.z - z) ** 2 < 0.38)) continue
+    spots.push({
+      x,
+      z,
+      rx: -Math.PI / 2 + (Math.random() - 0.5) * 0.35,
+      ry: Math.random() * Math.PI * 2,
+      rz: (Math.random() - 0.5) * 0.25,
+    })
   }
   while (spots.length < count) {
     spots.push({
       x: (Math.random() - 0.5) * 4,
       z: (Math.random() - 0.5) * 4,
+      rx: -Math.PI / 2 + (Math.random() - 0.5) * 0.35,
       ry: Math.random() * Math.PI * 2,
+      rz: (Math.random() - 0.5) * 0.25,
     })
   }
   return spots

@@ -13,9 +13,9 @@ export class ShelfSlot extends Interactable {
     super()
     this.colorIndex = colorIndex
     this.material = new THREE.MeshStandardMaterial({
-      color: 0x8a7a68,
+      color: 0xd8d0c6,
       transparent: true,
-      opacity: 0.35,
+      opacity: 0.28,
       roughness: 0.9,
     })
     this.mesh = new THREE.Mesh(
@@ -34,7 +34,7 @@ export class ShelfSlot extends Interactable {
   }
 
   protected applyHighlight(on: boolean): void {
-    this.material.opacity = on ? 0.65 : 0.35
-    this.material.color.setHex(on ? 0xb8e0a8 : 0x8a7a68)
+    this.material.opacity = on ? 0.55 : 0.28
+    this.material.color.setHex(on ? 0xc8e8b0 : 0xd8d0c6)
   }
 }

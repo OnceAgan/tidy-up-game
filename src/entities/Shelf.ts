@@ -1,7 +1,8 @@
 import * as THREE from 'three'
-import { CASSETTE_COLORS } from './Cassette'
 import { ShelfSlot } from './ShelfSlot'
 import { createFurnitureWoodTexture } from '../env/textures'
+import { createCategoryLabelTexture } from '../env/coverArt'
+import { getGenre } from '../data/cassetteCatalog'
 
 export class Shelf {
   readonly root = new THREE.Group()
@@ -14,20 +15,24 @@ export class Shelf {
     this.root.rotation.y = rotationY
     this.buildFrame()
     this.buildSlots()
-    this.buildColorMarker()
+    this.buildCategoryLabel()
   }
 
   private buildFrame(): void {
     const woodTex = createFurnitureWoodTexture()
     const wood = new THREE.MeshStandardMaterial({
       map: woodTex,
-      color: 0xffffff,
-      roughness: 0.72,
+      color: 0xf0e6d8,
+      roughness: 0.68,
     })
-    const darkWood = new THREE.MeshStandardMaterial({
+    const trim = new THREE.MeshStandardMaterial({
       map: woodTex,
-      color: 0xb0a090,
-      roughness: 0.8,
+      color: 0xd8cfc2,
+      roughness: 0.75,
+    })
+    const interior = new THREE.MeshStandardMaterial({
+      color: 0xeae4da,
+      roughness: 0.92,
     })
 
     const add = (
@@ -47,40 +52,35 @@ export class Shelf {
       return mesh
     }
 
-    // боковины с лёгким «профилем»
-    add(0.08, 1.5, 0.32, -0.8, 0.88, 0)
-    add(0.08, 1.5, 0.32, 0.8, 0.88, 0)
-    add(0.03, 1.45, 0.02, -0.75, 0.88, 0.16, darkWood)
-    add(0.03, 1.45, 0.02, 0.75, 0.88, 0.16, darkWood)
+    add(0.08, 1.65, 0.36, -0.85, 0.95, 0)
+    add(0.08, 1.65, 0.36, 0.85, 0.95, 0)
+    add(0.03, 1.6, 0.02, -0.8, 0.95, 0.18, trim)
+    add(0.03, 1.6, 0.02, 0.8, 0.95, 0.18, trim)
 
-    // цоколь
-    add(1.72, 0.1, 0.34, 0, 0.12, 0.01)
-    add(1.68, 0.03, 0.02, 0, 0.18, 0.17, darkWood)
+    add(1.82, 0.1, 0.38, 0, 0.12, 0.01)
+    add(1.68, 0.03, 0.02, 0, 0.18, 0.17, trim)
 
-    // верхняя крышка + карниз
-    add(1.72, 0.07, 0.34, 0, 1.62, 0)
-    add(1.78, 0.04, 0.38, 0, 1.68, 0.01)
-    add(1.7, 0.025, 0.02, 0, 1.58, 0.17, darkWood)
+    add(1.82, 0.07, 0.38, 0, 1.78, 0)
+    add(1.88, 0.04, 0.42, 0, 1.84, 0.01)
+    add(1.8, 0.025, 0.02, 0, 1.74, 0.19, trim)
 
-    // задняя стенка
-    add(1.55, 1.35, 0.05, 0, 0.9, -0.13, darkWood)
+    add(1.65, 1.5, 0.05, 0, 0.98, -0.14, interior)
 
-    // полки с передней кромкой (позиции рядов слотов те же: 0.45 и 0.95)
-    for (const y of [0.32, 0.7, 1.2]) {
-      add(1.55, 0.045, 0.28, 0, y, 0.02)
-      add(1.55, 0.03, 0.025, 0, y + 0.02, 0.15, darkWood)
+    for (const y of [0.36, 0.78, 1.32]) {
+      add(1.65, 0.045, 0.3, 0, y, 0.02, wood)
+      add(1.65, 0.03, 0.025, 0, y + 0.02, 0.17, trim)
     }
 
-    // вертикальные разделители колонок
-    for (const x of [-0.225, 0.225]) {
-      add(0.03, 0.95, 0.26, x, 0.78, 0.02, darkWood)
+    for (const x of [-0.24, 0.24]) {
+      add(0.03, 1.05, 0.28, x, 0.86, 0.02, trim)
     }
+
+    add(1.7, 0.14, 0.02, 0, 1.9, 0.19, interior)
   }
 
   private buildSlots(): void {
-    // те же координаты, что раньше — механика не меняется
-    const colXs = [-0.45, 0, 0.45]
-    const rowYs = [0.45, 0.95]
+    const colXs = [-0.48, 0, 0.48]
+    const rowYs = [0.52, 1.08]
     for (const y of rowYs) {
       for (const x of colXs) {
         const slot = new ShelfSlot(this.colorIndex)
@@ -91,29 +91,21 @@ export class Shelf {
     }
   }
 
-  private buildColorMarker(): void {
-    const plate = new THREE.Mesh(
-      new THREE.BoxGeometry(0.22, 0.05, 0.22),
-      new THREE.MeshStandardMaterial({
-        color: 0x3a3028,
-        roughness: 0.6,
-      }),
-    )
-    plate.position.set(0, 1.74, 0.02)
-    plate.castShadow = true
-    this.root.add(plate)
+  private buildCategoryLabel(): void {
+    const genre = getGenre(this.colorIndex)
+    const tex = createCategoryLabelTexture(genre.name)
 
-    const marker = new THREE.Mesh(
-      new THREE.BoxGeometry(0.16, 0.04, 0.16),
-      new THREE.MeshStandardMaterial({
-        color: CASSETTE_COLORS[this.colorIndex],
-        roughness: 0.4,
-        metalness: 0.1,
-        emissive: CASSETTE_COLORS[this.colorIndex],
-        emissiveIntensity: 0.2,
+    const labelW = 1.35
+    const labelH = 0.22
+    const label = new THREE.Mesh(
+      new THREE.PlaneGeometry(labelW, labelH),
+      new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        depthWrite: false,
       }),
     )
-    marker.position.set(0, 1.78, 0.02)
-    this.root.add(marker)
+    label.position.set(0, 1.96, 0.21)
+    this.root.add(label)
   }
 }
