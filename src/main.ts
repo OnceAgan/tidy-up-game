@@ -21,7 +21,7 @@ if (!app) {
 const engine = new Engine(app)
 const input = new InputManager(engine.renderer.domElement, hint)
 const level = new LevelManager()
-const player = new Player(engine.camera, input, level.bounds)
+const player = new Player(engine.camera, input, level.bounds, level.colliders)
 const raycast = new Raycast(engine.camera)
 const crosshair = new Crosshair()
 const hoverLabel = new HoverLabel()
@@ -33,6 +33,7 @@ const interaction = new InteractionManager(
   crosshair,
   level.cassettes,
   level.slots,
+  level.shelves,
 )
 
 const winScreen = new WinScreen(() => {
@@ -73,6 +74,10 @@ engine.setUpdate((dt) => {
 
     if (input.consumeInteract()) {
       interaction.tryInteract()
+    }
+
+    if (input.consumeDrop()) {
+      interaction.tryDrop()
     }
 
     const wheel = input.consumeWheelStep()

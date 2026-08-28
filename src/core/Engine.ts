@@ -21,7 +21,7 @@ export class Engine {
     container.appendChild(this.renderer.domElement)
 
     this.scene.background = new THREE.Color(0xb8a890)
-    this.scene.fog = new THREE.Fog(0xb8a890, 14, 32)
+    this.scene.fog = new THREE.Fog(0xb8a890, 16, 42)
 
     this.handleResize = this.handleResize.bind(this)
     window.addEventListener('resize', this.handleResize)

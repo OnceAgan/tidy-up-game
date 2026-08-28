@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import type { Interactable } from '../entities/Interactable'
 
-const MAX_DISTANCE = 2.8
+const MAX_DISTANCE = 3.4
 
 export class Raycast {
   private readonly raycaster = new THREE.Raycaster()

@@ -1,5 +1,7 @@
 import * as THREE from 'three'
 import type { InputManager } from '../core/InputManager'
+import type { BoxCollider } from '../core/CollisionWorld'
+import { resolveMovement } from '../core/CollisionWorld'
 
 export type RoomBounds = {
   minX: number
@@ -19,11 +21,18 @@ export class Player {
   private pitch = 0
   private readonly input: InputManager
   private readonly bounds: RoomBounds
+  private readonly colliders: readonly BoxCollider[]
 
-  constructor(camera: THREE.PerspectiveCamera, input: InputManager, bounds: RoomBounds) {
+  constructor(
+    camera: THREE.PerspectiveCamera,
+    input: InputManager,
+    bounds: RoomBounds,
+    colliders: readonly BoxCollider[],
+  ) {
     this.input = input
     this.bounds = bounds
-    this.yawObject.position.set(0, EYE_HEIGHT, 4)
+    this.colliders = colliders
+    this.yawObject.position.set(0, EYE_HEIGHT, 0.5)
     this.pitchObject.add(camera)
     this.yawObject.add(this.pitchObject)
   }
@@ -60,6 +69,23 @@ export class Player {
       this.bounds.maxZ - PLAYER_RADIUS,
     )
 
-    this.yawObject.position.copy(next)
+    const resolved = resolveMovement(
+      this.yawObject.position.x,
+      this.yawObject.position.z,
+      next.x,
+      next.z,
+      PLAYER_RADIUS,
+      this.colliders,
+    )
+
+    this.yawObject.position.set(resolved.x, EYE_HEIGHT, resolved.z)
+  }
+
+  get position(): THREE.Vector3 {
+    return this.yawObject.position
+  }
+
+  get yaw(): number {
+    return this.yawObject.rotation.y
   }
 }

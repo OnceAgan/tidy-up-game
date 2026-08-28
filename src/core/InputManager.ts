@@ -4,6 +4,7 @@ export class InputManager {
   private mouseDeltaX = 0
   private mouseDeltaY = 0
   private interactQueued = false
+  private dropQueued = false
   private wheelStep = 0
   private hintSuppressed = false
   private readonly domElement: HTMLElement
@@ -16,6 +17,8 @@ export class InputManager {
     this.onKeyUp = this.onKeyUp.bind(this)
     this.onMouseMove = this.onMouseMove.bind(this)
     this.onClick = this.onClick.bind(this)
+    this.onMouseDown = this.onMouseDown.bind(this)
+    this.onContextMenu = this.onContextMenu.bind(this)
     this.onWheel = this.onWheel.bind(this)
     this.onPointerLockChange = this.onPointerLockChange.bind(this)
 
@@ -24,6 +27,8 @@ export class InputManager {
     document.addEventListener('mousemove', this.onMouseMove)
     document.addEventListener('pointerlockchange', this.onPointerLockChange)
     this.domElement.addEventListener('click', this.onClick)
+    this.domElement.addEventListener('mousedown', this.onMouseDown)
+    this.domElement.addEventListener('contextmenu', this.onContextMenu)
     this.domElement.addEventListener('wheel', this.onWheel, { passive: true })
     this.hintEl?.addEventListener('click', this.onClick)
   }
@@ -55,6 +60,12 @@ export class InputManager {
     return true
   }
 
+  consumeDrop(): boolean {
+    if (!this.dropQueued) return false
+    this.dropQueued = false
+    return true
+  }
+
   /** -1 вверх, +1 вниз, 0 нет */
   consumeWheelStep(): number {
     const step = this.wheelStep
@@ -75,6 +86,18 @@ export class InputManager {
       return
     }
     this.interactQueued = true
+  }
+
+  private onMouseDown(e: MouseEvent): void {
+    if (this.hintSuppressed || !this.pointerLocked) return
+    if (e.button === 2) {
+      e.preventDefault()
+      this.dropQueued = true
+    }
+  }
+
+  private onContextMenu(e: Event): void {
+    e.preventDefault()
   }
 
   private onPointerLockChange(): void {

@@ -141,70 +141,72 @@ function drawGenreArt(ctx: CanvasRenderingContext2D, genreId: number, x: number,
 /** Крупная читаемая обложка VHS */
 export function createCoverTexture(title: string, genreId: number, indexInGenre: number): THREE.CanvasTexture {
   const genre = getGenre(genreId)
-  const w = 640
-  const h = 960
+  const w = 768
+  const h = 1152
   const canvas = document.createElement('canvas')
   canvas.width = w
   canvas.height = h
   const ctx = canvas.getContext('2d')!
 
-  // рамка
-  ctx.fillStyle = '#141210'
+  ctx.fillStyle = '#0e0c0a'
   ctx.fillRect(0, 0, w, h)
-  ctx.fillStyle = '#f0ebe2'
-  ctx.fillRect(10, 10, w - 20, h - 20)
+  ctx.fillStyle = '#f2ece2'
+  ctx.fillRect(14, 14, w - 28, h - 28)
 
-  const innerX = 24
-  const innerY = 24
-  const innerW = w - 48
-  const innerH = h - 48
+  const innerX = 30
+  const innerY = 30
+  const innerW = w - 60
+  const innerH = h - 60
 
-  // верхняя жанровая плашка
   ctx.fillStyle = hexToCss(genre.accent)
-  ctx.fillRect(innerX, innerY, innerW, 110)
+  ctx.fillRect(innerX, innerY, innerW, 130)
   ctx.fillStyle = '#fff'
-  ctx.font = 'bold 52px Arial Black, Arial, sans-serif'
+  ctx.font = 'bold 62px Arial Black, Arial, sans-serif'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText(genre.tag, innerX + innerW / 2, innerY + 55)
+  ctx.fillText(genre.tag, innerX + innerW / 2, innerY + 65)
 
-  // иллюстрация жанра
-  const artY = innerY + 120
-  const artH = innerH * 0.48
+  const artY = innerY + 142
+  const artH = innerH * 0.5
   drawGenreArt(ctx, genreId, innerX, artY, innerW, artH)
 
-  // номер кассеты (как в референсе)
-  ctx.fillStyle = 'rgba(0,0,0,0.75)'
-  ctx.font = 'bold 120px Arial Black, Arial, sans-serif'
+  ctx.fillStyle = 'rgba(0,0,0,0.82)'
+  ctx.font = 'bold 148px Arial Black, Arial, sans-serif'
   ctx.textAlign = 'right'
   ctx.textBaseline = 'bottom'
-  ctx.fillText(String(indexInGenre), innerX + innerW - 8, artY + artH - 8)
+  ctx.fillText(String(indexInGenre), innerX + innerW - 12, artY + artH - 12)
 
-  // название
-  const titleY = artY + artH + 24
+  const titleY = artY + artH + 28
   ctx.fillStyle = '#111'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'top'
-  let titleSize = 44
+  let titleSize = 50
   ctx.font = `bold ${titleSize}px Arial, Helvetica, sans-serif`
-  let lines = wrapLines(ctx, title.toUpperCase(), innerW - 20, 3)
-  while (lines.some((l) => ctx.measureText(l).width > innerW - 20) && titleSize > 28) {
+  let lines = wrapLines(ctx, title.toUpperCase(), innerW - 24, 3)
+  while (lines.some((l) => ctx.measureText(l).width > innerW - 24) && titleSize > 32) {
     titleSize -= 2
     ctx.font = `bold ${titleSize}px Arial, Helvetica, sans-serif`
-    lines = wrapLines(ctx, title.toUpperCase(), innerW - 20, 3)
+    lines = wrapLines(ctx, title.toUpperCase(), innerW - 24, 3)
   }
   lines.forEach((line, i) => {
-    ctx.fillText(line, innerX + innerW / 2, titleY + i * (titleSize + 8))
+    ctx.fillText(line, innerX + innerW / 2, titleY + i * (titleSize + 10))
   })
 
-  // нижняя полоса жанра
-  const footY = innerY + innerH - 56
+  const footY = innerY + innerH - 68
   ctx.fillStyle = hexToCss(genre.accent)
-  ctx.fillRect(innerX, footY, innerW, 48)
+  ctx.fillRect(innerX, footY, innerW, 56)
   ctx.fillStyle = '#fff'
-  ctx.font = 'bold 28px Arial, sans-serif'
+  ctx.font = 'bold 32px Arial, sans-serif'
   ctx.textBaseline = 'middle'
-  ctx.fillText(genre.name, innerX + innerW / 2, footY + 24)
+  ctx.fillText(genre.name, innerX + innerW / 2, footY + 28)
+
+  // полоска «штрихкод»
+  ctx.fillStyle = '#f8f8f8'
+  ctx.fillRect(innerX, innerY + innerH - 18, innerW, 14)
+  for (let i = 0; i < 48; i++) {
+    ctx.fillStyle = i % 3 === 0 ? '#111' : '#333'
+    ctx.fillRect(innerX + 8 + i * (innerW / 50), innerY + innerH - 16, 2 + (i % 2), 10)
+  }
 
   const tex = new THREE.CanvasTexture(canvas)
   tex.colorSpace = THREE.SRGBColorSpace
@@ -217,7 +219,7 @@ export function createCoverTexture(title: string, genreId: number, indexInGenre:
 }
 
 /** Табличка жанра на стеллаже */
-export function createCategoryLabelTexture(label: string): THREE.CanvasTexture {
+export function createCategoryLabelTexture(label: string, completed = false): THREE.CanvasTexture {
   const canvas = document.createElement('canvas')
   canvas.width = 512
   canvas.height = 128
@@ -245,14 +247,14 @@ export function createCategoryLabelTexture(label: string): THREE.CanvasTexture {
   roundRect(ctx, x + 2, y + 3, pillW, pillH, r)
   ctx.fill()
 
-  ctx.fillStyle = '#f2f0ec'
-  ctx.strokeStyle = '#2a2a2a'
+  ctx.fillStyle = completed ? '#5cb85c' : '#f2f0ec'
+  ctx.strokeStyle = completed ? '#2d6a2d' : '#2a2a2a'
   ctx.lineWidth = 4
   roundRect(ctx, x, y, pillW, pillH, r)
   ctx.fill()
   ctx.stroke()
 
-  ctx.fillStyle = '#1a1a1a'
+  ctx.fillStyle = completed ? '#ffffff' : '#1a1a1a'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.fillText(label, canvas.width / 2, canvas.height / 2 + 2)
@@ -304,8 +306,8 @@ function shortSpineTitle(title: string, maxLen = 20): string {
 /** Торец кассеты — жанр, название, номер (видно в стопке) */
 export function createSpineTexture(title: string, genreId: number, indexInGenre: number): THREE.CanvasTexture {
   const genre = getGenre(genreId)
-  const w = 192
-  const h = 512
+  const w = 256
+  const h = 640
   const canvas = document.createElement('canvas')
   canvas.width = w
   canvas.height = h
@@ -321,13 +323,13 @@ export function createSpineTexture(title: string, genreId: number, indexInGenre:
   ctx.fillRect(0, 0, w, 56)
 
   ctx.fillStyle = '#b8f060'
-  ctx.font = 'bold 26px Arial Black, Arial, sans-serif'
+  ctx.font = 'bold 34px Arial Black, Arial, sans-serif'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
   ctx.fillText(genre.tag, w / 2, 28)
 
   ctx.fillStyle = '#d4ff70'
-  ctx.font = 'bold 22px Arial, Helvetica, sans-serif'
+  ctx.font = 'bold 28px Arial, Helvetica, sans-serif'
   const spineTitle = shortSpineTitle(title)
   const titleLines = wrapLines(ctx, spineTitle, w - 16, 4)
   titleLines.forEach((line, i) => {
@@ -335,7 +337,7 @@ export function createSpineTexture(title: string, genreId: number, indexInGenre:
   })
 
   ctx.fillStyle = '#ffffff'
-  ctx.font = 'bold 140px Arial Black, Arial, sans-serif'
+  ctx.font = 'bold 168px Arial Black, Arial, sans-serif'
   ctx.textAlign = 'right'
   ctx.textBaseline = 'bottom'
   ctx.fillText(String(indexInGenre), w - 6, h - 12)
