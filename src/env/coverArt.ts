@@ -143,14 +143,15 @@ function drawGenreArt(ctx: CanvasRenderingContext2D, genreId: number, x: number,
 export function createCoverTexture(
   title: string,
   genreId: number,
-  indexInGenre: number,
+  seriesIndex: number,
+  part: number,
   onLoaded?: (tex: THREE.Texture) => void,
 ): THREE.Texture {
-  const fallback = createProceduralCoverTexture(title, genreId, indexInGenre)
+  const fallback = createProceduralCoverTexture(title, genreId, seriesIndex, part)
 
   const loader = new THREE.TextureLoader()
   loader.load(
-    getCoverImageUrl(genreId, indexInGenre),
+    getCoverImageUrl(genreId, seriesIndex),
     (loaded) => {
       applyCoverTextureSettings(loaded)
       onLoaded?.(loaded)
@@ -183,7 +184,8 @@ function applyCoverTextureSettings(tex: THREE.Texture): void {
 function createProceduralCoverTexture(
   title: string,
   genreId: number,
-  indexInGenre: number,
+  _seriesIndex: number,
+  part: number,
 ): THREE.CanvasTexture {
   const genre = getGenre(genreId)
   const w = 768
@@ -219,7 +221,7 @@ function createProceduralCoverTexture(
   ctx.font = 'bold 148px Arial Black, Arial, sans-serif'
   ctx.textAlign = 'right'
   ctx.textBaseline = 'bottom'
-  ctx.fillText(String(indexInGenre), innerX + innerW - 12, artY + artH - 12)
+  ctx.fillText(String(part), innerX + innerW - 12, artY + artH - 12)
 
   const titleY = artY + artH + 28
   ctx.fillStyle = '#111'
@@ -348,8 +350,13 @@ function shortSpineTitle(title: string, maxLen = 20): string {
   return `${upper.slice(0, maxLen - 1)}…`
 }
 
-/** Торец кассеты — жанр, название, номер (видно в стопке) */
-export function createSpineTexture(title: string, genreId: number, indexInGenre: number): THREE.CanvasTexture {
+/** Торец кассеты — жанр, название, номер части (видно в стопке) */
+export function createSpineTexture(
+  title: string,
+  genreId: number,
+  _seriesIndex: number,
+  part: number,
+): THREE.CanvasTexture {
   const genre = getGenre(genreId)
   const w = 256
   const h = 640
@@ -385,7 +392,7 @@ export function createSpineTexture(title: string, genreId: number, indexInGenre:
   ctx.font = 'bold 168px Arial Black, Arial, sans-serif'
   ctx.textAlign = 'right'
   ctx.textBaseline = 'bottom'
-  ctx.fillText(String(indexInGenre), w - 6, h - 12)
+  ctx.fillText(String(part), w - 6, h - 12)
 
   return makeTexture(canvas)
 }

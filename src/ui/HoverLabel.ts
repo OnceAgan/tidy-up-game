@@ -1,5 +1,4 @@
 import type { Cassette } from '../entities/Cassette'
-import { getGenre } from '../data/cassetteCatalog'
 
 export class HoverLabel {
   private readonly el: HTMLDivElement
@@ -31,8 +30,7 @@ export class HoverLabel {
   }
 
   show(cassette: Cassette): void {
-    const genre = getGenre(cassette.genreId)
-    this.el.textContent = `${cassette.title} - ${genre.name}`
+    this.el.textContent = cassette.label
     this.el.style.display = 'block'
   }
 

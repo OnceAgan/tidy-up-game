@@ -1,5 +1,4 @@
 import type { Cassette } from '../entities/Cassette'
-import { getGenre } from '../data/cassetteCatalog'
 
 export class HeldList {
   private readonly panel: HTMLDivElement
@@ -62,7 +61,6 @@ export class HeldList {
   // сверху вниз (верхняя — последняя в массиве)
     const ordered = [...held].reverse()
     ordered.forEach((c, i) => {
-      const genre = getGenre(c.genreId)
       const li = document.createElement('li')
       Object.assign(li.style, {
         marginBottom: '4px',
@@ -81,7 +79,7 @@ export class HeldList {
       } as CSSStyleDeclaration)
 
       const text = document.createElement('span')
-      text.textContent = `${c.title} - ${genre.name}`
+      text.textContent = c.label
 
       li.append(dot, text)
       this.list.append(li)

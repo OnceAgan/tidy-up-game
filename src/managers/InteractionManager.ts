@@ -6,11 +6,11 @@ import { CASSETTE_SIZE, HOLD_CASSETTE_ROT, type Cassette } from '../entities/Cas
 import type { ShelfSlot } from '../entities/ShelfSlot'
 import type { Shelf } from '../entities/Shelf'
 import type { Interactable } from '../entities/Interactable'
-import { floorCenterY } from '../entities/cassettePlacement'
+import { floorCenterY, shelfLocalPose } from '../entities/cassettePlacement'
 
 const MAX_STACK = 5
 /** Шаг стопки в глубину (торцы к камере, как в референсе) */
-const STACK_DEPTH_STEP = CASSETTE_SIZE.d * 1.65
+const STACK_DEPTH_STEP = CASSETTE_SIZE.d * 2.15
 
 /** Правый нижний угол экрана — стопка торцами к игроку */
 const HOLD_POS = new THREE.Vector3(0.54, -0.36, -0.58)
@@ -176,8 +176,10 @@ export class InteractionManager {
     cassette.held = false
     cassette.placed = true
     cassette.mesh.renderOrder = 0
-    slot.cassette = cassette
+    slot.addCassette(cassette)
     slot.setHighlight(false)
+
+    const pose = shelfLocalPose(cassette.part)
 
     cassette.mesh.updateWorldMatrix(true, false)
     const startWorld = new THREE.Vector3()
@@ -186,18 +188,18 @@ export class InteractionManager {
     this.scene.attach(cassette.mesh)
     slot.mesh.updateWorldMatrix(true, false)
     const endWorld = new THREE.Vector3()
-    slot.mesh.getWorldPosition(endWorld)
+    slot.mesh.localToWorld(endWorld.copy(pose.position))
 
     cassette.mesh.position.copy(startWorld)
-    cassette.mesh.rotation.set(0, 0, 0)
+    cassette.mesh.rotation.copy(HOLD_CASSETTE_ROT)
 
     new Tween(cassette.mesh.position, this.tweens)
       .to({ x: endWorld.x, y: endWorld.y, z: endWorld.z }, 220)
       .easing(Easing.Quadratic.Out)
       .onComplete(() => {
         slot.mesh.add(cassette.mesh)
-        cassette.mesh.position.set(0, 0, 0)
-        cassette.mesh.rotation.set(0, 0, 0)
+        cassette.mesh.position.copy(pose.position)
+        cassette.mesh.rotation.copy(pose.rotation)
         this.busy = false
         this.refreshShelfForSlot(slot)
         this.onPlaced?.()

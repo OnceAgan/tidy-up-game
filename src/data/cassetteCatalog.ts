@@ -1,3 +1,6 @@
+export const PARTS_PER_SERIES = 5
+export const SERIES_PER_GENRE = 6
+
 export type GenreDef = {
   id: number
   name: string
@@ -74,15 +77,20 @@ export const GENRES: readonly GenreDef[] = [
 export type CassetteDef = {
   genreId: number
   title: string
-  /** 1…6 внутри жанра — для номера на обложке */
-  indexInGenre: number
+  /** 1…6 — серия (ячейка на полке) */
+  seriesIndex: number
+  /** 1…5 — часть внутри серии */
+  part: number
 }
 
 export function buildCassettePool(): CassetteDef[] {
   const pool: CassetteDef[] = []
   for (const genre of GENRES) {
     genre.titles.forEach((title, i) => {
-      pool.push({ genreId: genre.id, title, indexInGenre: i + 1 })
+      const seriesIndex = i + 1
+      for (let part = 1; part <= PARTS_PER_SERIES; part++) {
+        pool.push({ genreId: genre.id, title, seriesIndex, part })
+      }
     })
   }
   return pool
@@ -90,4 +98,8 @@ export function buildCassettePool(): CassetteDef[] {
 
 export function getGenre(genreId: number): GenreDef {
   return GENRES[genreId % GENRES.length]
+}
+
+export function formatCassetteLabel(title: string, part: number): string {
+  return `${title} — ч. ${part}`
 }
