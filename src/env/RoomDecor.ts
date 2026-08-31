@@ -123,10 +123,12 @@ function addWallPictures(parent: THREE.Group, halfW: number, halfD: number, wall
     frame.castShadow = true
     group.add(frame)
 
-    const art = new THREE.Mesh(
-      new THREE.PlaneGeometry(p.w, p.h),
-      new THREE.MeshStandardMaterial({ map: createWallPictureTexture(p.seed), roughness: 0.85 }),
-    )
+    const artMat = new THREE.MeshStandardMaterial({ roughness: 0.85 })
+    artMat.map = createWallPictureTexture(p.seed, (tex) => {
+      artMat.map = tex
+      artMat.needsUpdate = true
+    })
+    const art = new THREE.Mesh(new THREE.PlaneGeometry(p.w, p.h), artMat)
     art.position.z = 0.025
     group.add(art)
 

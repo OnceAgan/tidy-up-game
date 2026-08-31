@@ -3,32 +3,36 @@ import { Interactable } from './Interactable'
 import { CASSETTE_SIZE, type Cassette } from './Cassette'
 import { PARTS_PER_SERIES } from '../data/cassetteCatalog'
 import { shelfSectionWidth, SHELF_DEPTH } from './cassettePlacement'
+import type { Shelf } from './Shelf'
 
 export class ShelfSlot extends Interactable {
   readonly kind = 'slot' as const
   readonly colorIndex: number
-  /** 1…6 — какая серия живёт в этой ячейке */
-  readonly seriesIndex: number
+  readonly shelf: Shelf
   readonly mesh: THREE.Mesh
-  private readonly material: THREE.MeshStandardMaterial
   readonly cassettes: Cassette[] = []
 
-  constructor(colorIndex: number, seriesIndex: number) {
+  constructor(shelf: Shelf, colorIndex: number) {
     super()
+    this.shelf = shelf
     this.colorIndex = colorIndex
-    this.seriesIndex = seriesIndex
-    this.material = new THREE.MeshStandardMaterial({
-      color: 0xd8d0c6,
-      transparent: true,
-      opacity: 0.22,
-      roughness: 0.9,
-    })
     const sectionW = shelfSectionWidth()
     this.mesh = new THREE.Mesh(
       new THREE.BoxGeometry(sectionW, CASSETTE_SIZE.h + 0.02, SHELF_DEPTH * 0.88),
-      this.material,
+      new THREE.MeshBasicMaterial({
+        visible: false,
+      }),
     )
     this.mesh.userData.interactable = this
+  }
+
+  /** Серия, закреплённая за ячейкой после первой кассеты */
+  get assignedSeries(): number | null {
+    return this.cassettes[0]?.seriesIndex ?? null
+  }
+
+  get isEmpty(): boolean {
+    return this.cassettes.length === 0
   }
 
   get isFull(): boolean {
@@ -40,20 +44,23 @@ export class ShelfSlot extends Interactable {
   }
 
   accepts(cassette: Cassette): boolean {
-    return (
-      !this.isFull &&
-      cassette.colorIndex === this.colorIndex &&
-      cassette.seriesIndex === this.seriesIndex &&
-      !this.hasPart(cassette.part)
-    )
+    if (cassette.colorIndex !== this.colorIndex) return false
+    if (this.isFull) return false
+    if (this.hasPart(cassette.part)) return false
+
+    const assigned = this.assignedSeries
+    if (assigned !== null) {
+      return cassette.seriesIndex === assigned
+    }
+
+    return !this.shelf.isSeriesAssigned(cassette.seriesIndex)
   }
 
   addCassette(cassette: Cassette): void {
     this.cassettes.push(cassette)
   }
 
-  protected applyHighlight(on: boolean): void {
-    this.material.opacity = on ? 0.48 : 0.22
-    this.material.color.setHex(on ? 0xc8e8b0 : 0xd8d0c6)
+  protected applyHighlight(_on: boolean): void {
+    // Ячейки невидимы — подсветка не нужна
   }
 }

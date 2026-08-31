@@ -36,6 +36,7 @@ export class Shelf {
     this.root.rotation.y = rotationY
     this.buildFrame()
     this.buildSlots()
+    this.buildInteriorLighting()
     this.buildCategoryLabel()
   }
 
@@ -67,9 +68,11 @@ export class Shelf {
     })
     const back = new THREE.MeshStandardMaterial({
       map: woodTex,
-      color: 0xb89878,
-      roughness: 0.82,
+      color: 0xd4c4a8,
+      roughness: 0.78,
       metalness: 0,
+      emissive: 0x3a3028,
+      emissiveIntensity: 0.12,
     })
 
     const add = (
@@ -134,13 +137,50 @@ export class Shelf {
     add(innerW + 0.12, 0.06, 0.08, 0, crownY + SHELF_CROWN_H / 2 + 0.1, halfD + 0.04, trim)
   }
 
+  /** Тёплая подсветка внутри ячеек — LED-полоски + мягкий point light */
+  private buildInteriorLighting(): void {
+    const halfD = SHELF_DEPTH / 2
+    const innerW = shelfHalfWidth() * 2 - SHELF_SIDE_W * 2 - 0.1
+
+    const stripMat = new THREE.MeshStandardMaterial({
+      color: 0xfff8ee,
+      emissive: 0xffd8a0,
+      emissiveIntensity: 1.15,
+      roughness: 0.92,
+      metalness: 0,
+    })
+
+    const addLedStrip = (y: number) => {
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(innerW, 0.012, 0.04), stripMat)
+      strip.position.set(0, y - 0.007, halfD * 0.34)
+      this.root.add(strip)
+    }
+
+    for (const topY of SHELF_PLANK_TOP_Y) {
+      addLedStrip(topY)
+    }
+    addLedStrip(SHELF_PLANK_TOP_Y[1] + SHELF_COMPARTMENT_H + SHELF_CROWN_H - 0.03)
+
+    for (const slot of this.slots) {
+      const light = new THREE.PointLight(0xfff2dc, 0.52, 1.45, 2)
+      light.position.set(
+        slot.mesh.position.x,
+        slot.mesh.position.y + SHELF_COMPARTMENT_H * 0.4,
+        slot.mesh.position.z + halfD * 0.3,
+      )
+      this.root.add(light)
+    }
+  }
+
+  isSeriesAssigned(seriesIndex: number): boolean {
+    return this.slots.some((slot) => slot.assignedSeries === seriesIndex)
+  }
+
   private buildSlots(): void {
     const colXs = shelfColumnXs()
-    let series = 1
     for (const y of SHELF_SLOT_ROW_Y) {
       for (const x of colXs) {
-        const slot = new ShelfSlot(this.colorIndex, series)
-        series++
+        const slot = new ShelfSlot(this, this.colorIndex)
         slot.mesh.position.set(x, y, SHELF_SLOT_Z)
         this.root.add(slot.mesh)
         this.slots.push(slot)

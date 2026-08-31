@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { roomTextureUrl } from '../data/roomTextureFiles'
 
 function makeCanvas(size: number): HTMLCanvasElement {
   const canvas = document.createElement('canvas')
@@ -16,8 +17,55 @@ function finishTex(tex: THREE.CanvasTexture, repeatX: number, repeatY: number): 
   return tex
 }
 
-/** Тёплый паркет с выраженными швами */
-export function createWoodFloorTexture(): THREE.CanvasTexture {
+function applyLoadedTexture(
+  tex: THREE.Texture,
+  repeat?: [number, number],
+  clamp = false,
+): void {
+  tex.colorSpace = THREE.SRGBColorSpace
+  tex.anisotropy = 8
+  tex.minFilter = THREE.LinearMipmapLinearFilter
+  tex.magFilter = THREE.LinearFilter
+  tex.generateMipmaps = true
+  if (clamp) {
+    tex.wrapS = THREE.ClampToEdgeWrapping
+    tex.wrapT = THREE.ClampToEdgeWrapping
+  } else {
+    tex.wrapS = THREE.RepeatWrapping
+    tex.wrapT = THREE.RepeatWrapping
+    if (repeat) tex.repeat.set(repeat[0], repeat[1])
+  }
+  tex.needsUpdate = true
+}
+
+function loadRoomTexture(
+  fileName: string,
+  createFallback: () => THREE.CanvasTexture,
+  options?: { repeat?: [number, number]; clamp?: boolean; onLoaded?: (tex: THREE.Texture) => void },
+): THREE.Texture {
+  const fallback = createFallback()
+  new THREE.TextureLoader().load(
+    roomTextureUrl(fileName),
+    (loaded) => {
+      applyLoadedTexture(loaded, options?.repeat, options?.clamp)
+      options?.onLoaded?.(loaded)
+      fallback.dispose()
+    },
+    undefined,
+    () => options?.onLoaded?.(fallback),
+  )
+  return fallback
+}
+
+/** Тёплый паркет с выраженными швами (или `public/textures/floor.jpg`) */
+export function createWoodFloorTexture(onLoaded?: (tex: THREE.Texture) => void): THREE.Texture {
+  return loadRoomTexture('floor.jpg', createProceduralWoodFloorTexture, {
+    repeat: [5, 8],
+    onLoaded,
+  })
+}
+
+function createProceduralWoodFloorTexture(): THREE.CanvasTexture {
   const size = 1024
   const canvas = makeCanvas(size)
   const ctx = canvas.getContext('2d')!
@@ -70,8 +118,15 @@ export function createWoodFloorTexture(): THREE.CanvasTexture {
   return finishTex(new THREE.CanvasTexture(canvas), 5, 8)
 }
 
-/** Обои с мягким дамасским узором */
-export function createWallpaperTexture(): THREE.CanvasTexture {
+/** Обои с мягким дамасским узором (или `public/textures/wallpaper.jpg`) */
+export function createWallpaperTexture(onLoaded?: (tex: THREE.Texture) => void): THREE.Texture {
+  return loadRoomTexture('wallpaper.jpg', createProceduralWallpaperTexture, {
+    repeat: [8, 4],
+    onLoaded,
+  })
+}
+
+function createProceduralWallpaperTexture(): THREE.CanvasTexture {
   const size = 512
   const canvas = makeCanvas(size)
   const ctx = canvas.getContext('2d')!
@@ -174,8 +229,16 @@ export function createCeilingTexture(): THREE.CanvasTexture {
   return finishTex(new THREE.CanvasTexture(canvas), 2, 2)
 }
 
-/** Картина для рамки на стене */
-export function createWallPictureTexture(seed: number): THREE.CanvasTexture {
+/** Картина для рамки на стене (или `public/textures/picture-N.jpg`, N = 1…5) */
+export function createWallPictureTexture(seed: number, onLoaded?: (tex: THREE.Texture) => void): THREE.Texture {
+  const index = ((seed % 5) + 5) % 5 + 1
+  return loadRoomTexture(`picture-${index}.jpg`, () => createProceduralWallPictureTexture(seed), {
+    clamp: true,
+    onLoaded,
+  })
+}
+
+function createProceduralWallPictureTexture(seed: number): THREE.CanvasTexture {
   const w = 256
   const h = 192
   const canvas = document.createElement('canvas')

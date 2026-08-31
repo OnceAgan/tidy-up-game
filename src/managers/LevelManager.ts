@@ -47,23 +47,25 @@ export class LevelManager {
   }
 
   private buildRoom(): void {
-    const floorTex = createWoodFloorTexture()
-    const floor = new THREE.Mesh(
-      new THREE.BoxGeometry(ROOM_WIDTH, 0.15, ROOM_DEPTH),
-      new THREE.MeshStandardMaterial({
-        map: floorTex,
-        roughness: 0.62,
-        metalness: 0.02,
-      }),
-    )
+    const floorMat = new THREE.MeshStandardMaterial({
+      roughness: 0.62,
+      metalness: 0.02,
+    })
+    floorMat.map = createWoodFloorTexture((tex) => {
+      floorMat.map = tex
+      floorMat.needsUpdate = true
+    })
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(ROOM_WIDTH, 0.15, ROOM_DEPTH), floorMat)
     floor.position.y = -0.075
     floor.receiveShadow = true
     this.root.add(floor)
 
-    const wallTex = createWallpaperTexture()
     const wallMat = new THREE.MeshStandardMaterial({
-      map: wallTex,
       roughness: 0.9,
+    })
+    wallMat.map = createWallpaperTexture((tex) => {
+      wallMat.map = tex
+      wallMat.needsUpdate = true
     })
     const halfW = ROOM_WIDTH / 2
     const halfD = ROOM_DEPTH / 2
