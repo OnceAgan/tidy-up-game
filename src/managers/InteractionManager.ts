@@ -149,29 +149,9 @@ export class InteractionManager {
     this.holdRoot.attach(cassette.mesh)
     cassette.mesh.position.copy(this.holdRoot.worldToLocal(startPos.clone()))
 
-    const index = this.stack.length - 1
-    this.applyStackRotation(cassette.mesh, index)
-    cassette.mesh.renderOrder = 200 + index
-    const end = this.slotLocalPos(index)
-
-    for (let i = 0; i < index; i++) {
-      const pos = this.slotLocalPos(i)
-      const mesh = this.stack[i].mesh
-      this.applyStackRotation(mesh, i)
-      mesh.renderOrder = 200 + i
-      new Tween(mesh.position, this.tweens)
-        .to({ x: pos.x, y: pos.y, z: pos.z }, 140)
-        .easing(Easing.Quadratic.Out)
-        .start()
-    }
-
-    new Tween(cassette.mesh.position, this.tweens)
-      .to({ x: end.x, y: end.y, z: end.z }, 180)
-      .easing(Easing.Quadratic.Out)
-      .onComplete(() => {
-        this.busy = false
-      })
-      .start()
+    this.relayoutStack(true, () => {
+      this.busy = false
+    })
   }
 
   private placeInSlot(slot: ShelfSlot, cassette: Cassette): void {
@@ -204,6 +184,7 @@ export class InteractionManager {
         slot.mesh.add(cassette.mesh)
         cassette.mesh.position.copy(pose.position)
         cassette.mesh.rotation.copy(pose.rotation)
+        cassette.mesh.renderOrder = 10
         this.busy = false
         this.refreshShelfForSlot(slot)
         this.onPlaced?.()
@@ -304,12 +285,22 @@ export class InteractionManager {
 
   private slotLocalPos(index: number): THREE.Vector3 {
     const topIdx = this.stack.length - 1
-    // верхняя (активная) — спереди, остальные уходят назад
     const depth = topIdx - index
-    return _heldSlotPos.copy(HELD_STACK_AXIS).multiplyScalar(depth * HELD_STACK_STEP)
+    return _heldSlotPos.copy(HELD_STACK_AXIS).multiplyScalar(depth * HELD_STACK_STEP).clone()
   }
 
-  private relayoutStack(animate: boolean): void {
+  private relayoutStack(animate: boolean, onComplete?: () => void): void {
+    if (this.stack.length === 0) {
+      onComplete?.()
+      return
+    }
+
+    let pending = animate ? this.stack.length : 0
+    const doneOne = () => {
+      pending -= 1
+      if (pending <= 0) onComplete?.()
+    }
+
     this.stack.forEach((cassette, index) => {
       const end = this.slotLocalPos(index)
       this.applyStackRotation(cassette.mesh, index)
@@ -319,10 +310,13 @@ export class InteractionManager {
         return
       }
       new Tween(cassette.mesh.position, this.tweens)
-        .to({ x: end.x, y: end.y, z: end.z }, 140)
+        .to({ x: end.x, y: end.y, z: end.z }, index === this.stack.length - 1 ? 180 : 140)
         .easing(Easing.Quadratic.Out)
+        .onComplete(doneOne)
         .start()
     })
+
+    if (!animate) onComplete?.()
   }
 
   setOnPlaced(fn: () => void): void {

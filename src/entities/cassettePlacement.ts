@@ -198,17 +198,69 @@ export function settleFloorCassettes(meshes: THREE.Mesh[], passes = 3): void {
 /** Поворот на полке: торец к игроку */
 export const SHELF_CASSETTE_ROT = new THREE.Euler(0, Math.PI / 2, 0)
 
-const SHELF_PACK_STEP = CASSETTE_SIZE.d * 1.1
+const SHELF_PACK_STEP = CASSETTE_SIZE.d * 1.14
+const SHELF_SECTION_PAD = 0.06
+
+export const SHELF_PLANK_THICK = 0.04
+export const SHELF_ROW_CLEARANCE = 0.09
+export const SHELF_COMPARTMENT_H = CASSETTE_SIZE.h + SHELF_ROW_CLEARANCE
+export const SHELF_BASE_H = 0.16
+export const SHELF_CROWN_H = 0.2
+export const SHELF_SIDE_W = 0.095
+export const SHELF_DEPTH = CASSETTE_SIZE.w + 0.12
+export const SHELF_COL_GAP = 0.14
+export const SHELF_DIVIDER_W = 0.03
+
+function shelfPlankTopYs(): [number, number] {
+  const y1 = SHELF_BASE_H + SHELF_PLANK_THICK
+  const y2 = y1 + SHELF_COMPARTMENT_H + SHELF_PLANK_THICK
+  return [y1, y2]
+}
+
+/** Верхняя поверхность полок — кассеты стоят ровно на ней */
+export const SHELF_PLANK_TOP_Y = shelfPlankTopYs()
+
+/** Y-центры ячеек */
+export const SHELF_SLOT_ROW_Y = SHELF_PLANK_TOP_Y.map(
+  (top) => top + CASSETTE_SIZE.h / 2 + 0.005,
+) as [number, number]
+
+export const SHELF_TOTAL_H =
+  SHELF_BASE_H +
+  SHELF_PLANK_THICK +
+  SHELF_COMPARTMENT_H +
+  SHELF_PLANK_THICK +
+  SHELF_COMPARTMENT_H +
+  SHELF_CROWN_H
+
+/** Табличка категории — на фронтоне, как раньше */
+export const SHELF_LABEL_Y = SHELF_TOTAL_H - 0.06
+
+export const SHELF_SLOT_Z = 0.02
+const SHELF_CASSETTE_Z = 0.02
+
+export function shelfSectionWidth(): number {
+  return SHELF_PACK_STEP * (PARTS_PER_SERIES - 1) + CASSETTE_SIZE.d + SHELF_SECTION_PAD
+}
+
+export function shelfColumnPitch(): number {
+  return shelfSectionWidth() + SHELF_COL_GAP
+}
+
+export function shelfColumnXs(): [number, number, number] {
+  const pitch = shelfColumnPitch()
+  return [-pitch, 0, pitch]
+}
+
+export function shelfHalfWidth(): number {
+  return shelfColumnPitch() + shelfSectionWidth() / 2 + SHELF_SIDE_W
+}
 
 export function shelfLocalPose(part: number): { position: THREE.Vector3; rotation: THREE.Euler } {
   const center = (PARTS_PER_SERIES - 1) / 2
   const x = (part - 1 - center) * SHELF_PACK_STEP
   return {
-    position: new THREE.Vector3(x, 0, CASSETTE_SIZE.w * 0.5 - CASSETTE_SIZE.d * 0.55),
+    position: new THREE.Vector3(x, 0, SHELF_CASSETTE_Z),
     rotation: SHELF_CASSETTE_ROT.clone(),
   }
-}
-
-export function shelfSectionWidth(): number {
-  return SHELF_PACK_STEP * (PARTS_PER_SERIES - 1) + CASSETTE_SIZE.d + 0.04
 }

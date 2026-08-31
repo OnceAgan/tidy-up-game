@@ -6,6 +6,7 @@ export class InputManager {
   private interactQueued = false
   private dropQueued = false
   private wheelStep = 0
+  private rmbHeld = false
   private hintSuppressed = false
   private readonly domElement: HTMLElement
   private readonly hintEl: HTMLElement | null
@@ -18,6 +19,7 @@ export class InputManager {
     this.onMouseMove = this.onMouseMove.bind(this)
     this.onClick = this.onClick.bind(this)
     this.onMouseDown = this.onMouseDown.bind(this)
+    this.onMouseUp = this.onMouseUp.bind(this)
     this.onContextMenu = this.onContextMenu.bind(this)
     this.onWheel = this.onWheel.bind(this)
     this.onPointerLockChange = this.onPointerLockChange.bind(this)
@@ -26,6 +28,7 @@ export class InputManager {
     window.addEventListener('keyup', this.onKeyUp)
     document.addEventListener('mousemove', this.onMouseMove)
     document.addEventListener('pointerlockchange', this.onPointerLockChange)
+    window.addEventListener('mouseup', this.onMouseUp)
     this.domElement.addEventListener('click', this.onClick)
     this.domElement.addEventListener('mousedown', this.onMouseDown)
     this.domElement.addEventListener('contextmenu', this.onContextMenu)
@@ -47,9 +50,9 @@ export class InputManager {
     return this.keys.has(code)
   }
 
-  /** Удержание Alt (Win/Linux) или ⌘ (Mac) — зум 2× */
+  /** Удержание ПКМ — зум 2× */
   isZoomHeld(): boolean {
-    return this.keys.has('AltLeft') || this.keys.has('MetaLeft')
+    return this.pointerLocked && this.rmbHeld
   }
 
   consumeMouseDelta(): { x: number; y: number } {
@@ -94,10 +97,17 @@ export class InputManager {
   }
 
   private onMouseDown(e: MouseEvent): void {
-    if (this.hintSuppressed || !this.pointerLocked) return
     if (e.button === 2) {
       e.preventDefault()
-      this.dropQueued = true
+      if (!this.hintSuppressed && this.pointerLocked) {
+        this.rmbHeld = true
+      }
+    }
+  }
+
+  private onMouseUp(e: MouseEvent): void {
+    if (e.button === 2) {
+      this.rmbHeld = false
     }
   }
 
@@ -107,15 +117,18 @@ export class InputManager {
 
   private onPointerLockChange(): void {
     this.pointerLocked = document.pointerLockElement === this.domElement
+    if (!this.pointerLocked) {
+      this.rmbHeld = false
+    }
     if (!this.hintEl || this.hintSuppressed) return
     this.hintEl.classList.toggle('hidden', this.pointerLocked)
   }
 
   private onKeyDown(e: KeyboardEvent): void {
-    if (e.code === 'AltLeft' || e.code === 'MetaLeft') {
-      e.preventDefault()
-    }
     this.keys.add(e.code)
+    if (e.code === 'KeyE' && !e.repeat && this.pointerLocked && !this.hintSuppressed) {
+      this.dropQueued = true
+    }
   }
 
   private onKeyUp(e: KeyboardEvent): void {
@@ -124,6 +137,7 @@ export class InputManager {
 
   private onMouseMove(e: MouseEvent): void {
     if (!this.pointerLocked) return
+    this.rmbHeld = (e.buttons & 2) !== 0
     this.mouseDeltaX += e.movementX
     this.mouseDeltaY += e.movementY
   }

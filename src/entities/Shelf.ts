@@ -3,6 +3,24 @@ import { ShelfSlot } from './ShelfSlot'
 import { createFurnitureWoodTexture } from '../env/textures'
 import { createCategoryLabelTexture } from '../env/coverArt'
 import { getGenre } from '../data/cassetteCatalog'
+import {
+  SHELF_BASE_H,
+  SHELF_COL_GAP,
+  SHELF_COMPARTMENT_H,
+  SHELF_CROWN_H,
+  SHELF_DEPTH,
+  SHELF_DIVIDER_W,
+  SHELF_LABEL_Y,
+  SHELF_PLANK_THICK,
+  SHELF_PLANK_TOP_Y,
+  SHELF_SIDE_W,
+  SHELF_SLOT_ROW_Y,
+  SHELF_SLOT_Z,
+  SHELF_TOTAL_H,
+  shelfColumnXs,
+  shelfHalfWidth,
+  shelfSectionWidth,
+} from './cassettePlacement'
 import type { BoxCollider } from '../core/CollisionWorld'
 
 export class Shelf {
@@ -23,24 +41,35 @@ export class Shelf {
 
   private buildFrame(): void {
     const woodTex = createFurnitureWoodTexture()
-    const wood = new THREE.MeshStandardMaterial({
+    const body = new THREE.MeshStandardMaterial({
       map: woodTex,
-      color: 0xf0e6d8,
-      roughness: 0.65,
+      color: 0xf0dcc0,
+      roughness: 0.52,
+      metalness: 0.02,
+    })
+    const light = new THREE.MeshStandardMaterial({
+      map: woodTex,
+      color: 0xf8efe0,
+      roughness: 0.45,
+      metalness: 0.02,
     })
     const trim = new THREE.MeshStandardMaterial({
       map: woodTex,
-      color: 0xc8b8a4,
-      roughness: 0.72,
+      color: 0xc4a484,
+      roughness: 0.38,
+      metalness: 0.03,
     })
-    const darkWood = new THREE.MeshStandardMaterial({
+    const dark = new THREE.MeshStandardMaterial({
       map: woodTex,
-      color: 0x8a7058,
-      roughness: 0.78,
+      color: 0x9a7858,
+      roughness: 0.62,
+      metalness: 0.01,
     })
-    const interior = new THREE.MeshStandardMaterial({
-      color: 0xeae4da,
-      roughness: 0.92,
+    const back = new THREE.MeshStandardMaterial({
+      map: woodTex,
+      color: 0xb89878,
+      roughness: 0.82,
+      metalness: 0,
     })
 
     const add = (
@@ -50,7 +79,7 @@ export class Shelf {
       x: number,
       y: number,
       z: number,
-      mat: THREE.Material = wood,
+      mat: THREE.Material = body,
     ) => {
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat)
       mesh.position.set(x, y, z)
@@ -60,53 +89,59 @@ export class Shelf {
       return mesh
     }
 
-    // боковины
-    add(0.09, 1.68, 0.38, -0.86, 0.96, 0)
-    add(0.09, 1.68, 0.38, 0.86, 0.96, 0)
-    add(0.035, 1.62, 0.025, -0.81, 0.96, 0.185, trim)
-    add(0.035, 1.62, 0.025, 0.81, 0.96, 0.185, trim)
+    const halfW = shelfHalfWidth()
+    const innerW = halfW * 2 - SHELF_SIDE_W * 2
+    const halfD = SHELF_DEPTH / 2
+    const midY = SHELF_TOTAL_H / 2
 
-    // цоколь и корона
-    add(1.84, 0.11, 0.4, 0, 0.12, 0.01)
-    add(1.72, 0.035, 0.025, 0, 0.19, 0.175, trim)
-    add(1.9, 0.09, 0.42, 0, 1.8, 0)
-    add(1.96, 0.05, 0.44, 0, 1.86, 0.01)
-    add(1.88, 0.03, 0.025, 0, 1.76, 0.195, trim)
-    // карниз
-    add(1.92, 0.06, 0.08, 0, 1.9, 0.2, trim)
-
-    // задняя стенка
-    add(1.66, 1.52, 0.06, 0, 0.98, -0.145, interior)
-
-    // полки + передний бортик
-    for (const y of [0.36, 0.78, 1.32]) {
-      add(1.66, 0.05, 0.32, 0, y, 0.02, wood)
-      add(1.66, 0.035, 0.028, 0, y + 0.025, 0.175, trim)
-      add(1.64, 0.018, 0.04, 0, y + 0.04, 0.19, darkWood)
+    // Боковины
+    for (const sx of [-1, 1] as const) {
+      const x = sx * (halfW - SHELF_SIDE_W / 2)
+      add(SHELF_SIDE_W, SHELF_TOTAL_H, SHELF_DEPTH, x, SHELF_TOTAL_H / 2, 0, body)
+      add(0.018, SHELF_TOTAL_H - 0.12, SHELF_DEPTH - 0.04, x + sx * 0.028, midY, 0.02, light)
+      add(0.035, SHELF_TOTAL_H - 0.08, 0.025, x + sx * 0.04, SHELF_TOTAL_H - 0.1, halfD - 0.01, trim)
     }
 
-    // вертикальные разделители
-    for (const x of [-0.24, 0.24]) {
-      add(0.035, 1.08, 0.3, x, 0.86, 0.02, trim)
+    // Цоколь
+    add(innerW + SHELF_SIDE_W * 2, SHELF_BASE_H, SHELF_DEPTH + 0.02, 0, SHELF_BASE_H / 2, 0.01, dark)
+    add(innerW, 0.045, SHELF_DEPTH, 0, SHELF_BASE_H + 0.02, 0.02, trim)
+
+    // Задняя стенка
+    const backH = SHELF_PLANK_TOP_Y[1] + SHELF_COMPARTMENT_H - SHELF_PLANK_TOP_Y[0]
+    const backY = (SHELF_PLANK_TOP_Y[0] + SHELF_PLANK_TOP_Y[1] + SHELF_COMPARTMENT_H) / 2
+    add(innerW - 0.04, backH, 0.06, 0, backY, -halfD + 0.03, back)
+
+    // Горизонтальные полки — только плоскость опоры, без передних кромок
+    for (const topY of SHELF_PLANK_TOP_Y) {
+      const cy = topY - SHELF_PLANK_THICK / 2
+      add(innerW - 0.02, SHELF_PLANK_THICK, SHELF_DEPTH - 0.04, 0, cy, 0, body)
+      add(innerW - 0.06, 0.012, SHELF_DEPTH - 0.08, 0, topY - 0.006, 0.01, light)
     }
 
-    // верхняя декоративная панель под табличку
-    add(1.72, 0.16, 0.025, 0, 1.92, 0.195, interior)
-    // боковые накладки
-    for (const x of [-0.88, 0.88] as const) {
-      add(0.025, 0.35, 0.34, x, 1.72, 0.02, darkWood)
+    // Вертикальные перегородки между колонками
+    const divH = SHELF_PLANK_TOP_Y[1] + SHELF_COMPARTMENT_H - SHELF_PLANK_TOP_Y[0]
+    const divY = (SHELF_PLANK_TOP_Y[0] + SHELF_PLANK_TOP_Y[1] + SHELF_COMPARTMENT_H) / 2
+    const divX = shelfColumnXs()[0] + shelfSectionWidth() / 2 + SHELF_COL_GAP / 2
+    for (const x of [-divX, divX]) {
+      add(SHELF_DIVIDER_W, divH, SHELF_DEPTH - 0.08, x, divY, 0, trim)
     }
+
+    // Верхняя крышка + фронтон (декор только снаружи, выше кассет)
+    const crownY = SHELF_PLANK_TOP_Y[1] + SHELF_COMPARTMENT_H + SHELF_CROWN_H / 2
+    add(innerW + 0.04, SHELF_CROWN_H, SHELF_DEPTH + 0.02, 0, crownY, 0, body)
+    add(innerW + 0.1, 0.05, SHELF_DEPTH + 0.04, 0, crownY + SHELF_CROWN_H / 2 + 0.02, 0.01, trim)
+    add(innerW + 0.14, 0.028, 0.05, 0, crownY + SHELF_CROWN_H / 2 + 0.06, halfD + 0.02, light)
+    add(innerW + 0.12, 0.06, 0.08, 0, crownY + SHELF_CROWN_H / 2 + 0.1, halfD + 0.04, trim)
   }
 
   private buildSlots(): void {
-    const colXs = [-0.48, 0, 0.48]
-    const rowYs = [0.52, 1.08]
+    const colXs = shelfColumnXs()
     let series = 1
-    for (const y of rowYs) {
+    for (const y of SHELF_SLOT_ROW_Y) {
       for (const x of colXs) {
         const slot = new ShelfSlot(this.colorIndex, series)
         series++
-        slot.mesh.position.set(x, y, 0.02)
+        slot.mesh.position.set(x, y, SHELF_SLOT_Z)
         this.root.add(slot.mesh)
         this.slots.push(slot)
       }
@@ -126,7 +161,7 @@ export class Shelf {
     })
     this.labelMaterial = material
     const label = new THREE.Mesh(new THREE.PlaneGeometry(labelW, labelH), material)
-    label.position.set(0, 1.96, 0.21)
+    label.position.set(0, SHELF_LABEL_Y, SHELF_DEPTH / 2 + 0.02)
     this.root.add(label)
   }
 
@@ -150,10 +185,9 @@ export class Shelf {
     return {
       cx: this.root.position.x + inset.x,
       cz: this.root.position.z + inset.z,
-      halfW: 0.94,
-      halfD: 0.18,
+      halfW: shelfHalfWidth() + 0.04,
+      halfD: 0.2,
       rotY: this.root.rotation.y,
     }
   }
 }
-

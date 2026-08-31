@@ -18,7 +18,8 @@ const ROOM_DEPTH = 20
 const WALL_HEIGHT = 3.2
 const WALL_THICKNESS = 0.2
 const SHELF_INSET_W = 4.55
-const SHELF_INSET_D = 9.0
+/** Север/юг: боевики и sci-fi ближе к стене */
+const SHELF_INSET_D = 9.72
 const SHELF_GENRE_IDS = [0, 1, 2, 3] as const
 
 export class LevelManager {
@@ -95,7 +96,7 @@ export class LevelManager {
   }
 
   private addLights(): void {
-    const ambient = new THREE.AmbientLight(0xfff2e0, 0.38)
+    const ambient = new THREE.AmbientLight(0xfff2e0, 0.45)
     this.root.add(ambient)
 
     const fill = new THREE.DirectionalLight(0xffe6c8, 0.5)

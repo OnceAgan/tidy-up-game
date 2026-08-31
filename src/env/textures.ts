@@ -115,23 +115,44 @@ export function createFurnitureWoodTexture(): THREE.CanvasTexture {
   const size = 512
   const canvas = makeCanvas(size)
   const ctx = canvas.getContext('2d')!
-  ctx.fillStyle = '#5c4535'
+
+  const base = ctx.createLinearGradient(0, 0, size, size)
+  base.addColorStop(0, '#6a4f3a')
+  base.addColorStop(0.5, '#5a4030')
+  base.addColorStop(1, '#4a3428')
+  ctx.fillStyle = base
   ctx.fillRect(0, 0, size, size)
 
-  for (let i = 0; i < 55; i++) {
-    const y = (i / 55) * size
-    const tone = 50 + (i % 7) * 12
-    ctx.strokeStyle = `rgba(${tone + 30},${tone},${tone - 15}, ${0.12 + (i % 5) * 0.04})`
-    ctx.lineWidth = 1.5 + (i % 3)
+  for (let i = 0; i < 70; i++) {
+    const y = (i / 70) * size
+    const tone = 45 + (i % 9) * 10
+    ctx.strokeStyle = `rgba(${tone + 55},${tone + 25},${tone - 5}, ${0.1 + (i % 4) * 0.05})`
+    ctx.lineWidth = 1 + (i % 3) * 0.6
     ctx.beginPath()
     ctx.moveTo(0, y)
-    ctx.bezierCurveTo(size * 0.25, y + 6, size * 0.75, y - 5, size, y + 3)
+    ctx.bezierCurveTo(size * 0.2, y + 8, size * 0.55, y - 6, size * 0.85, y + 4)
+    ctx.bezierCurveTo(size * 0.95, y + 2, size, y, size, y + 1)
     ctx.stroke()
   }
 
-  for (let i = 0; i < 400; i++) {
-    ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.04})`
-    ctx.fillRect(Math.random() * size, Math.random() * size, 2, 1)
+  for (let i = 0; i < 12; i++) {
+    const x = (i / 12) * size + Math.random() * 20
+    ctx.strokeStyle = `rgba(30, 18, 10, ${0.08 + Math.random() * 0.06})`
+    ctx.lineWidth = 2 + Math.random() * 3
+    ctx.beginPath()
+    ctx.moveTo(x, 0)
+    ctx.lineTo(x + (Math.random() - 0.5) * 30, size)
+    ctx.stroke()
+  }
+
+  for (let i = 0; i < 500; i++) {
+    ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.05})`
+    ctx.fillRect(Math.random() * size, Math.random() * size, 1 + Math.random() * 2, 1)
+  }
+
+  for (let i = 0; i < 200; i++) {
+    ctx.fillStyle = `rgba(255,230,200,${Math.random() * 0.04})`
+    ctx.fillRect(Math.random() * size, Math.random() * size, 1, 1)
   }
 
   return finishTex(new THREE.CanvasTexture(canvas), 1, 2)

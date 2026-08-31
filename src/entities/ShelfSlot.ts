@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { Interactable } from './Interactable'
 import { CASSETTE_SIZE, type Cassette } from './Cassette'
 import { PARTS_PER_SERIES } from '../data/cassetteCatalog'
-import { shelfSectionWidth } from './cassettePlacement'
+import { shelfSectionWidth, SHELF_DEPTH } from './cassettePlacement'
 
 export class ShelfSlot extends Interactable {
   readonly kind = 'slot' as const
@@ -25,7 +25,7 @@ export class ShelfSlot extends Interactable {
     })
     const sectionW = shelfSectionWidth()
     this.mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(sectionW, CASSETTE_SIZE.h + 0.02, CASSETTE_SIZE.w * 0.55),
+      new THREE.BoxGeometry(sectionW, CASSETTE_SIZE.h + 0.02, SHELF_DEPTH * 0.88),
       this.material,
     )
     this.mesh.userData.interactable = this

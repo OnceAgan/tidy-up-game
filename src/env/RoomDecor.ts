@@ -31,7 +31,7 @@ export function buildRoomDecor(
   addArmchair(parent, halfW - 1.3, halfD - 2.2, -0.6, colliders)
   addFloorLamp(parent, -halfW + 1.6, halfD - 2.4)
   addNightstand(parent, woodMat, halfW - 1.4, -halfD + 1.8, colliders)
-  addChandelier(parent, wallHeight)
+  addCeilingLights(parent, wallHeight)
   addBaseboards(parent, halfW, halfD, woodMat)
 
   return colliders
@@ -259,9 +259,25 @@ function addNightstand(
   colliders.push({ cx: x, cz: z, halfW: 0.36, halfD: 0.32, rotY: 0 })
 }
 
-function addChandelier(parent: THREE.Group, wallHeight: number): void {
+function addCeilingLights(parent: THREE.Group, wallHeight: number): void {
+  const fixtures: Array<[number, number]> = [
+    [0, 0],
+    [-2.8, -5.5],
+    [2.8, 5.5],
+  ]
+  for (const [x, z] of fixtures) {
+    addChandelierFixture(parent, wallHeight, x, z)
+  }
+}
+
+function addChandelierFixture(
+  parent: THREE.Group,
+  wallHeight: number,
+  x: number,
+  z: number,
+): void {
   const group = new THREE.Group()
-  group.position.set(0, wallHeight - 0.05, 0)
+  group.position.set(x, wallHeight - 0.05, z)
 
   const metal = new THREE.MeshStandardMaterial({ color: 0xb8a078, metalness: 0.65, roughness: 0.35 })
   const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.35, 8), metal)
@@ -275,7 +291,7 @@ function addChandelier(parent: THREE.Group, wallHeight: number): void {
   const shadeMat = new THREE.MeshStandardMaterial({
     color: 0xf5ead0,
     emissive: 0xffe6b0,
-    emissiveIntensity: 0.35,
+    emissiveIntensity: 0.4,
     roughness: 0.6,
   })
   for (let i = 0; i < 4; i++) {
@@ -285,10 +301,12 @@ function addChandelier(parent: THREE.Group, wallHeight: number): void {
     group.add(shade)
   }
 
-  const light = new THREE.PointLight(0xffe0b0, 1.1, 22, 1.8)
+  const light = new THREE.PointLight(0xffe0b0, 0.9, 20, 1.7)
   light.position.y = -0.55
-  light.castShadow = true
-  light.shadow.mapSize.set(1024, 1024)
+  if (x === 0 && z === 0) {
+    light.castShadow = true
+    light.shadow.mapSize.set(1024, 1024)
+  }
   group.add(light)
 
   parent.add(group)
