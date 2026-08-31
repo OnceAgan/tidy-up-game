@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import type { RoomBounds } from '../entities/Player'
 import { Cassette } from '../entities/Cassette'
-import { floorCenterY } from '../entities/cassettePlacement'
+import { placeCassetteOnFloor, settleFloorCassettes, type PlacedCassette } from '../entities/cassettePlacement'
 import { Shelf } from '../entities/Shelf'
 import type { ShelfSlot } from '../entities/ShelfSlot'
 import { buildCassettePool } from '../data/cassetteCatalog'
@@ -138,15 +138,16 @@ export class LevelManager {
     shuffle(pool)
 
     const spots = scatterSpots(pool.length)
+    const placed: PlacedCassette[] = []
     pool.forEach((def, i) => {
       const spot = spots[i]
-      const rot = new THREE.Euler(spot.rx, spot.ry, spot.rz)
       const cassette = new Cassette(def.genreId, def.title, def.seriesIndex, def.part)
-      cassette.mesh.position.set(spot.x, floorCenterY(rot), spot.z)
-      cassette.mesh.rotation.copy(rot)
+      placeCassetteOnFloor(cassette.mesh, spot.x, spot.z, spot.ry, placed)
       this.root.add(cassette.mesh)
       this.cassettes.push(cassette)
     })
+
+    settleFloorCassettes(this.cassettes.map((c) => c.mesh))
   }
 }
 
@@ -157,32 +158,15 @@ function shuffle<T>(arr: T[]): void {
   }
 }
 
-function scatterSpots(count: number): Array<{ x: number; z: number; rx: number; ry: number; rz: number }> {
-  const spots: Array<{ x: number; z: number; rx: number; ry: number; rz: number }> = []
+function scatterSpots(count: number): Array<{ x: number; z: number; ry: number }> {
+  const spots: Array<{ x: number; z: number; ry: number }> = []
   const maxX = 3.6
   const maxZ = 7.2
-  let guard = 0
-  while (spots.length < count && guard < 500) {
-    guard++
-    const x = (Math.random() - 0.5) * maxX * 2
-    const z = (Math.random() - 0.5) * maxZ * 2
-    if (Math.abs(x) < 1.2 && Math.abs(z) < 2.5) continue
-    if (spots.some((s) => (s.x - x) ** 2 + (s.z - z) ** 2 < 0.28)) continue
-    spots.push({
-      x,
-      z,
-      rx: -Math.PI / 2 + (Math.random() - 0.5) * 0.35,
-      ry: Math.random() * Math.PI * 2,
-      rz: (Math.random() - 0.5) * 0.25,
-    })
-  }
   while (spots.length < count) {
     spots.push({
       x: (Math.random() - 0.5) * maxX * 2,
       z: (Math.random() - 0.5) * maxZ * 2,
-      rx: -Math.PI / 2 + (Math.random() - 0.5) * 0.35,
-      ry: Math.random() * 2 * Math.PI,
-      rz: (Math.random() - 0.5) * 0.25,
+      ry: Math.random() * Math.PI * 2,
     })
   }
   return spots

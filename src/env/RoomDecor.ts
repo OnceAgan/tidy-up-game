@@ -31,7 +31,6 @@ export function buildRoomDecor(
   addArmchair(parent, halfW - 1.3, halfD - 2.2, -0.6, colliders)
   addFloorLamp(parent, -halfW + 1.6, halfD - 2.4)
   addNightstand(parent, woodMat, halfW - 1.4, -halfD + 1.8, colliders)
-  addLowTable(parent, woodMat, 0, 0)
   addChandelier(parent, wallHeight)
   addBaseboards(parent, halfW, halfD, woodMat)
 
@@ -138,26 +137,26 @@ function addWallPictures(parent: THREE.Group, halfW: number, halfD: number, wall
 }
 
 function addRug(parent: THREE.Group): void {
+  const loader = new THREE.TextureLoader()
+  const rugTex = loader.load(`${import.meta.env.BASE_URL}textures/rug.jpg`)
+  rugTex.colorSpace = THREE.SRGBColorSpace
+  rugTex.wrapS = THREE.ClampToEdgeWrapping
+  rugTex.wrapT = THREE.ClampToEdgeWrapping
+  rugTex.anisotropy = 8
+
   const rug = new THREE.Mesh(
-    new THREE.PlaneGeometry(3.6, 5.2),
+    new THREE.PlaneGeometry(3.8, 5.4),
     new THREE.MeshStandardMaterial({
-      color: 0x8b3a32,
-      roughness: 0.95,
+      map: rugTex,
+      roughness: 0.92,
+      metalness: 0.02,
       side: THREE.DoubleSide,
     }),
   )
   rug.rotation.x = -Math.PI / 2
-  rug.position.set(0, 0.02, 1.2)
+  rug.position.set(0, 0.018, 1.2)
   rug.receiveShadow = true
   parent.add(rug)
-
-  const border = new THREE.Mesh(
-    new THREE.PlaneGeometry(3.9, 5.5),
-    new THREE.MeshStandardMaterial({ color: 0x5c2822, roughness: 0.95, side: THREE.DoubleSide }),
-  )
-  border.rotation.x = -Math.PI / 2
-  border.position.set(0, 0.015, 1.2)
-  parent.add(border)
 }
 
 function addArmchair(
@@ -258,34 +257,6 @@ function addNightstand(
 
   parent.add(group)
   colliders.push({ cx: x, cz: z, halfW: 0.36, halfD: 0.32, rotY: 0 })
-}
-
-function addLowTable(parent: THREE.Group, woodMat: THREE.Material, x: number, z: number): void {
-  const group = new THREE.Group()
-  group.position.set(x, 0, z)
-  const top = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.05, 0.65), woodMat)
-  top.position.y = 0.42
-  top.castShadow = true
-  group.add(top)
-  for (const [px, pz] of [
-    [-0.45, -0.25],
-    [0.45, -0.25],
-    [-0.45, 0.25],
-    [0.45, 0.25],
-  ] as const) {
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.42, 0.06), woodMat)
-    leg.position.set(px, 0.21, pz)
-    group.add(leg)
-  }
-  const mag = new THREE.Mesh(
-    new THREE.BoxGeometry(0.22, 0.025, 0.28),
-    new THREE.MeshStandardMaterial({ color: 0xc94a3a, roughness: 0.6 }),
-  )
-  mag.position.set(0.15, 0.46, 0.05)
-  mag.rotation.y = 0.3
-  group.add(mag)
-  parent.add(group)
-  // низкий столик — без коллайдера, можно обойти
 }
 
 function addChandelier(parent: THREE.Group, wallHeight: number): void {

@@ -47,6 +47,11 @@ export class InputManager {
     return this.keys.has(code)
   }
 
+  /** Удержание Alt (Win/Linux) или ⌘ (Mac) — зум 2× */
+  isZoomHeld(): boolean {
+    return this.keys.has('AltLeft') || this.keys.has('MetaLeft')
+  }
+
   consumeMouseDelta(): { x: number; y: number } {
     const delta = { x: this.mouseDeltaX, y: this.mouseDeltaY }
     this.mouseDeltaX = 0
@@ -107,6 +112,9 @@ export class InputManager {
   }
 
   private onKeyDown(e: KeyboardEvent): void {
+    if (e.code === 'AltLeft' || e.code === 'MetaLeft') {
+      e.preventDefault()
+    }
     this.keys.add(e.code)
   }
 

@@ -6,15 +6,18 @@ import { CASSETTE_SIZE, HOLD_CASSETTE_ROT, type Cassette } from '../entities/Cas
 import type { ShelfSlot } from '../entities/ShelfSlot'
 import type { Shelf } from '../entities/Shelf'
 import type { Interactable } from '../entities/Interactable'
-import { floorCenterY, shelfLocalPose } from '../entities/cassettePlacement'
+import { computeFloorPlacement, flatFloorRotation, footprintFromMesh, shelfLocalPose } from '../entities/cassettePlacement'
 
 const MAX_STACK = 5
-/** Шаг стопки в глубину (торцы к камере, как в референсе) */
-const STACK_DEPTH_STEP = CASSETTE_SIZE.d * 2.15
+/** Толщина кассеты вдоль оси «назад» (локальный −Z → hold +X при HOLD_CASSETTE_ROT) */
+const HELD_STACK_STEP = CASSETTE_SIZE.d * 1.05
+/** Ось укладки: задняя грань кассеты в пространстве holdRoot */
+const HELD_STACK_AXIS = new THREE.Vector3(0, 0, -1).applyEuler(HOLD_CASSETTE_ROT).normalize()
+const _heldSlotPos = new THREE.Vector3()
 
-/** Правый нижний угол экрана — стопка торцами к игроку */
-const HOLD_POS = new THREE.Vector3(0.54, -0.36, -0.58)
-const HOLD_ROT = new THREE.Euler(0.1, 0.05, 0.02)
+/** Правый нижний угол — смещено левее/выше, чтобы была видна вся стопка */
+const HOLD_POS = new THREE.Vector3(0.30, -0.18, -0.54)
+const HOLD_ROT = new THREE.Euler(0.06, 0.03, 0)
 
 export class InteractionManager {
   private readonly stack: Cassette[] = []
@@ -155,6 +158,7 @@ export class InteractionManager {
       const pos = this.slotLocalPos(i)
       const mesh = this.stack[i].mesh
       this.applyStackRotation(mesh, i)
+      mesh.renderOrder = 200 + i
       new Tween(mesh.position, this.tweens)
         .to({ x: pos.x, y: pos.y, z: pos.z }, 140)
         .easing(Easing.Quadratic.Out)
@@ -221,12 +225,13 @@ export class InteractionManager {
     const lookDir = new THREE.Vector3()
     this.camera.getWorldDirection(lookDir)
     const dropYaw = Math.atan2(lookDir.x, -lookDir.z)
-    const rot = new THREE.Euler(
-      -Math.PI / 2 + (Math.random() - 0.5) * 0.3,
-      dropYaw + (Math.random() - 0.5) * 0.8,
-      (Math.random() - 0.5) * 0.2,
-    )
-    const dropY = floorCenterY(rot)
+
+    const placed = this.cassettes
+      .filter((c) => c !== cassette && !c.held && !c.placed)
+      .map((c) => footprintFromMesh(c.mesh))
+
+    const { y: dropY, quaternion } = computeFloorPlacement(dropX, dropZ, dropYaw, placed)
+    const flatRot = flatFloorRotation(dropYaw)
 
     cassette.mesh.updateWorldMatrix(true, false)
     const startWorld = new THREE.Vector3()
@@ -237,7 +242,7 @@ export class InteractionManager {
     cassette.mesh.rotation.copy(HOLD_CASSETTE_ROT)
 
     const end = new THREE.Vector3(dropX, dropY, dropZ)
-    const endRot = { x: rot.x, y: rot.y, z: rot.z }
+    const endRot = { x: flatRot.x, y: flatRot.y, z: flatRot.z }
 
     new Tween(cassette.mesh.position, this.tweens)
       .to({ x: end.x, y: end.y, z: end.z }, 200)
@@ -248,6 +253,7 @@ export class InteractionManager {
       .to(endRot, 200)
       .easing(Easing.Quadratic.Out)
       .onComplete(() => {
+        cassette.mesh.quaternion.copy(quaternion)
         this.rootAddCassette(cassette)
         this.busy = false
       })
@@ -292,26 +298,15 @@ export class InteractionManager {
     shelf?.refreshCategoryLabel()
   }
 
-  private applyStackRotation(mesh: THREE.Mesh, index: number): void {
-    const topIdx = this.stack.length - 1
-    const depth = topIdx - index
-    const fan = depth * 0.04 - (topIdx * 0.008)
-    mesh.rotation.set(
-      HOLD_CASSETTE_ROT.x + 0.05,
-      HOLD_CASSETTE_ROT.y + fan,
-      HOLD_CASSETTE_ROT.z + (index % 2 === 0 ? 0.025 : -0.02) * (1 + depth * 0.15),
-    )
+  private applyStackRotation(mesh: THREE.Mesh, _index: number): void {
+    mesh.rotation.copy(HOLD_CASSETTE_ROT)
   }
 
   private slotLocalPos(index: number): THREE.Vector3 {
     const topIdx = this.stack.length - 1
+    // верхняя (активная) — спереди, остальные уходят назад
     const depth = topIdx - index
-    const sway = (index % 3 - 1) * 0.005
-    return new THREE.Vector3(
-      sway - depth * 0.011,
-      -depth * 0.014,
-      -depth * STACK_DEPTH_STEP,
-    )
+    return _heldSlotPos.copy(HELD_STACK_AXIS).multiplyScalar(depth * HELD_STACK_STEP)
   }
 
   private relayoutStack(animate: boolean): void {

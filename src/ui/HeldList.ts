@@ -1,4 +1,5 @@
 import type { Cassette } from '../entities/Cassette'
+import { getGenre } from '../data/cassetteCatalog'
 
 export class HeldList {
   private readonly panel: HTMLDivElement
@@ -79,7 +80,8 @@ export class HeldList {
       } as CSSStyleDeclaration)
 
       const text = document.createElement('span')
-      text.textContent = c.label
+      const genre = getGenre(c.genreId)
+      text.textContent = `${c.title}, ч. ${c.part}, ${genre.name}`
 
       li.append(dot, text)
       this.list.append(li)
