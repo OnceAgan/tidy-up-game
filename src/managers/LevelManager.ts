@@ -80,7 +80,6 @@ export class LevelManager {
     for (const w of walls) {
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(w.w, w.h, w.d), wallMat)
       mesh.position.set(w.x, w.y, w.z)
-      mesh.castShadow = true
       mesh.receiveShadow = true
       this.root.add(mesh)
     }
@@ -104,7 +103,7 @@ export class LevelManager {
     const fill = new THREE.DirectionalLight(0xffe6c8, 0.5)
     fill.position.set(4, 7, 3)
     fill.castShadow = true
-    fill.shadow.mapSize.set(1536, 1536)
+    fill.shadow.mapSize.set(1024, 1024)
     fill.shadow.camera.near = 0.5
     fill.shadow.camera.far = 35
     fill.shadow.camera.left = -9

@@ -12,8 +12,8 @@ export class Raycast {
     this.camera = camera
   }
 
-  pick(targets: Interactable[]): Interactable | null {
-    const meshes = targets.map((t) => t.mesh)
+  pick(targets: Interactable[], meshList?: THREE.Object3D[]): Interactable | null {
+    const meshes = meshList ?? targets.map((t) => t.mesh)
     this.raycaster.setFromCamera(this.center, this.camera)
     this.raycaster.far = MAX_DISTANCE
 

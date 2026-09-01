@@ -9,6 +9,7 @@ import { Crosshair } from './ui/Crosshair'
 import { WinScreen } from './ui/WinScreen'
 import { HoverLabel } from './ui/HoverLabel'
 import { HeldList } from './ui/HeldList'
+import { PerfPanel } from './ui/PerfPanel'
 import type { Cassette } from './entities/Cassette'
 
 const app = document.querySelector<HTMLDivElement>('#app')
@@ -26,6 +27,7 @@ const raycast = new Raycast(engine.camera)
 const crosshair = new Crosshair()
 const hoverLabel = new HoverLabel()
 const heldList = new HeldList()
+const perfPanel = new PerfPanel()
 const interaction = new InteractionManager(
   engine.camera,
   engine.scene,
@@ -57,6 +59,7 @@ engine.scene.add(level.root)
 engine.scene.add(player.yawObject)
 
 engine.setUpdate((dt) => {
+  perfPanel.update(dt, engine.scene, engine.renderer, level.cassettes.length, level.shelves)
   if (gameState.isWon) return
   player.update(dt)
   crosshair.setVisible(input.isPointerLocked)

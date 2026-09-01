@@ -13,7 +13,7 @@ function finishTex(tex: THREE.CanvasTexture, repeatX: number, repeatY: number): 
   tex.wrapT = THREE.RepeatWrapping
   tex.repeat.set(repeatX, repeatY)
   tex.colorSpace = THREE.SRGBColorSpace
-  tex.anisotropy = 8
+  tex.anisotropy = 4
   return tex
 }
 
@@ -23,7 +23,7 @@ function applyLoadedTexture(
   clamp = false,
 ): void {
   tex.colorSpace = THREE.SRGBColorSpace
-  tex.anisotropy = 8
+  tex.anisotropy = 4
   tex.minFilter = THREE.LinearMipmapLinearFilter
   tex.magFilter = THREE.LinearFilter
   tex.generateMipmaps = true
@@ -165,8 +165,11 @@ function createProceduralWallpaperTexture(): THREE.CanvasTexture {
   return finishTex(new THREE.CanvasTexture(canvas), 8, 4)
 }
 
-/** Дерево для мебели / стеллажей */
+/** Дерево для мебели / стеллажей — одна текстура на всю сцену */
+let furnitureWoodTexture: THREE.CanvasTexture | null = null
+
 export function createFurnitureWoodTexture(): THREE.CanvasTexture {
+  if (furnitureWoodTexture) return furnitureWoodTexture
   const size = 512
   const canvas = makeCanvas(size)
   const ctx = canvas.getContext('2d')!
@@ -210,7 +213,8 @@ export function createFurnitureWoodTexture(): THREE.CanvasTexture {
     ctx.fillRect(Math.random() * size, Math.random() * size, 1, 1)
   }
 
-  return finishTex(new THREE.CanvasTexture(canvas), 1, 2)
+  furnitureWoodTexture = finishTex(new THREE.CanvasTexture(canvas), 1, 2)
+  return furnitureWoodTexture
 }
 
 /** Однотонный потолок с лёгким шумом */

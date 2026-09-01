@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { Interactable } from './Interactable'
 import { createCoverTexture, createSpineTexture } from '../env/coverArt'
-import { createCassetteGeometry } from './cassetteGeometry'
+import { getSharedCassetteGeometry } from './cassetteGeometry'
 import { formatCassetteLabel } from '../data/cassetteCatalog'
 
 export const CASSETTE_SIZE = { w: 0.32, h: 0.51, d: 0.068 }
@@ -15,6 +15,9 @@ export const CASSETTE_COLORS = [
   0xd4783a,
 ] as const
 
+/** Общий материал кромки — один на все кассеты, меньше draw calls */
+const EDGE_MATERIAL = new THREE.MeshLambertMaterial({ color: 0xe4ddd4 })
+
 export class Cassette extends Interactable {
   readonly kind = 'cassette' as const
   readonly genreId: number
@@ -24,10 +27,8 @@ export class Cassette extends Interactable {
   readonly part: number
   readonly label: string
   readonly mesh: THREE.Mesh
-  private readonly coverMaterial: THREE.MeshStandardMaterial
-  private readonly spineMaterial: THREE.MeshStandardMaterial
-  private readonly backMaterial: THREE.MeshStandardMaterial
-  private readonly materials: THREE.MeshStandardMaterial[]
+  private readonly coverMaterial: THREE.MeshLambertMaterial
+  private readonly spineMaterial: THREE.MeshLambertMaterial
   held = false
   placed = false
 
@@ -40,51 +41,37 @@ export class Cassette extends Interactable {
     this.part = part
     this.label = formatCassetteLabel(title, part)
 
-    this.coverMaterial = new THREE.MeshStandardMaterial({
-      roughness: 0.55,
-      metalness: 0.02,
-    })
-    this.backMaterial = new THREE.MeshStandardMaterial({
-      roughness: 0.55,
-      metalness: 0.02,
-    })
+    // Lambert вместо Standard — дешевле при нескольких источниках света
+    this.coverMaterial = new THREE.MeshLambertMaterial()
 
     const coverTex = createCoverTexture(title, genreId, seriesIndex, part, (tex) => {
       this.coverMaterial.map = tex
-      this.backMaterial.map = tex
       this.coverMaterial.needsUpdate = true
-      this.backMaterial.needsUpdate = true
     })
     this.coverMaterial.map = coverTex
-    this.backMaterial.map = coverTex
 
     const spineTex = createSpineTexture(title, genreId, seriesIndex, part)
-
-    this.spineMaterial = new THREE.MeshStandardMaterial({
+    this.spineMaterial = new THREE.MeshLambertMaterial({
       map: spineTex,
       color: 0xffffff,
-      roughness: 0.5,
-      metalness: 0.02,
     })
 
-    const top = new THREE.MeshStandardMaterial({
-      color: 0xe8e2d6,
-      roughness: 0.55,
-    })
-    const bottom = new THREE.MeshStandardMaterial({
-      color: 0xe0dace,
-      roughness: 0.6,
-    })
-
-    // +X, -X, +Y, -Y, +Z (лицевая), -Z (задняя)
-    this.materials = [this.spineMaterial, this.spineMaterial, top, bottom, this.coverMaterial, this.backMaterial]
+    // 3 уникальных материала: торец, кромка, обложка (лицо + зад — один материал)
+    const materials = [
+      this.spineMaterial,
+      this.spineMaterial,
+      EDGE_MATERIAL,
+      EDGE_MATERIAL,
+      this.coverMaterial,
+      this.coverMaterial,
+    ]
 
     this.mesh = new THREE.Mesh(
-      createCassetteGeometry(CASSETTE_SIZE.w, CASSETTE_SIZE.h, CASSETTE_SIZE.d),
-      this.materials,
+      getSharedCassetteGeometry(CASSETTE_SIZE.w, CASSETTE_SIZE.h, CASSETTE_SIZE.d),
+      materials,
     )
-    this.mesh.castShadow = true
-    this.mesh.receiveShadow = true
+    this.mesh.castShadow = false
+    this.mesh.receiveShadow = false
     this.mesh.userData.interactable = this
   }
 

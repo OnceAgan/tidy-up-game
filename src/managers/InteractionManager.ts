@@ -64,6 +64,9 @@ export class InteractionManager {
     return this.hovered
   }
 
+  private pickMeshes: THREE.Object3D[] = []
+  private pickTargets: Interactable[] = []
+
   update(): void {
     this.tweens.update()
     if (this.busy) return
@@ -122,18 +125,27 @@ export class InteractionManager {
   }
 
   private resolveTarget(): Interactable | null {
-    const targets: Interactable[] = []
+    this.pickTargets.length = 0
 
     if (this.stack.length < MAX_STACK) {
-      targets.push(...this.cassettes.filter((c) => !c.held && !c.placed))
+      for (const c of this.cassettes) {
+        if (!c.held && !c.placed) this.pickTargets.push(c)
+      }
     }
 
     const top = this.stack[this.stack.length - 1]
     if (top) {
-      targets.push(...this.slots.filter((s) => s.accepts(top)))
+      for (const s of this.slots) {
+        if (s.accepts(top)) this.pickTargets.push(s)
+      }
     }
 
-    return this.raycast.pick(targets)
+    this.pickMeshes.length = 0
+    for (const t of this.pickTargets) {
+      this.pickMeshes.push(t.mesh)
+    }
+
+    return this.raycast.pick(this.pickTargets, this.pickMeshes)
   }
 
   private pickUp(cassette: Cassette): void {

@@ -57,7 +57,7 @@ function addWindowWithCurtains(
   })
 
   const outer = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.35, 0.08), frameMat)
-  outer.castShadow = true
+  outer.castShadow = false
   windowGroup.add(outer)
 
   const glass = new THREE.Mesh(new THREE.BoxGeometry(1.28, 1.12, 0.03), glassMat)
@@ -73,14 +73,8 @@ function addWindowWithCurtains(
 
   const sill = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.06, 0.22), frameMat)
   sill.position.set(0, -0.72, 0.1)
-  sill.castShadow = true
+  sill.castShadow = false
   windowGroup.add(sill)
-
-  const spot = new THREE.SpotLight(0xd8e8ff, 1.1, 12, Math.PI / 5, 0.5, 1)
-  spot.position.set(0, 0, 0.35)
-  spot.target.position.set(0, -0.5, 1.5)
-  windowGroup.add(spot)
-  windowGroup.add(spot.target)
 
   const curtainMat = new THREE.MeshStandardMaterial({
     color: 0xd4b896,
@@ -90,7 +84,7 @@ function addWindowWithCurtains(
   for (const side of [-1, 1] as const) {
     const curtain = new THREE.Mesh(new THREE.BoxGeometry(0.38, 2.0, 0.04), curtainMat)
     curtain.position.set(side * 0.95, -0.25, 0.12)
-    curtain.castShadow = true
+    curtain.castShadow = false
     windowGroup.add(curtain)
   }
 
@@ -120,7 +114,7 @@ function addWallPictures(parent: THREE.Group, halfW: number, halfD: number, wall
     group.rotation.y = p.ry
 
     const frame = new THREE.Mesh(new THREE.BoxGeometry(p.w + 0.1, p.h + 0.1, 0.04), frameMat)
-    frame.castShadow = true
+    frame.castShadow = false
     group.add(frame)
 
     const artMat = new THREE.MeshStandardMaterial({ roughness: 0.85 })
@@ -144,7 +138,7 @@ function addRug(parent: THREE.Group): void {
   rugTex.colorSpace = THREE.SRGBColorSpace
   rugTex.wrapS = THREE.ClampToEdgeWrapping
   rugTex.wrapT = THREE.ClampToEdgeWrapping
-  rugTex.anisotropy = 8
+  rugTex.anisotropy = 4
 
   const rug = new THREE.Mesh(
     new THREE.PlaneGeometry(3.8, 5.4),
@@ -174,11 +168,11 @@ function addArmchair(
   const fabric = new THREE.MeshStandardMaterial({ color: 0x6a5a4a, roughness: 0.92 })
   const seat = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.22, 0.7), fabric)
   seat.position.y = 0.38
-  seat.castShadow = true
+  seat.castShadow = false
   group.add(seat)
   const back = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.55, 0.12), fabric)
   back.position.set(0, 0.68, -0.29)
-  back.castShadow = true
+  back.castShadow = false
   group.add(back)
   const armL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.35, 0.65), fabric)
   armL.position.set(-0.33, 0.52, 0)
@@ -196,7 +190,7 @@ function addFloorLamp(parent: THREE.Group, x: number, z: number): void {
   const metal = new THREE.MeshStandardMaterial({ color: 0xb8a078, metalness: 0.55, roughness: 0.4 })
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 1.55, 8), metal)
   pole.position.y = 0.78
-  pole.castShadow = true
+  pole.castShadow = false
   group.add(pole)
   const shade = new THREE.Mesh(
     new THREE.CylinderGeometry(0.18, 0.28, 0.22, 16, 1, true),
@@ -228,7 +222,7 @@ function addNightstand(
 
   const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.5, 0.4), woodMat)
   body.position.y = 0.35
-  body.castShadow = true
+  body.castShadow = false
   group.add(body)
 
   const top = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.04, 0.45), woodMat)
@@ -240,7 +234,7 @@ function addNightstand(
     new THREE.MeshStandardMaterial({ color: 0x7a9480, roughness: 0.32 }),
   )
   vase.position.set(0.05, 0.76, 0)
-  vase.castShadow = true
+  vase.castShadow = false
   group.add(vase)
 
   const stemMat = new THREE.MeshStandardMaterial({ color: 0x4a6b3a, roughness: 0.8 })

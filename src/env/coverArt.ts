@@ -139,6 +139,17 @@ function drawGenreArt(ctx: CanvasRenderingContext2D, genreId: number, x: number,
   ctx.restore()
 }
 
+const coverTextureCache = new Map<string, { texture: THREE.Texture; ready: boolean }>()
+const coverLoadWaiters = new Map<string, Array<(tex: THREE.Texture) => void>>()
+
+function notifyCoverWaiters(key: string, tex: THREE.Texture): void {
+  const waiters = coverLoadWaiters.get(key)
+  if (waiters) {
+    for (const cb of waiters) cb(tex)
+    coverLoadWaiters.delete(key)
+  }
+}
+
 /** Обложка: PNG из public/covers, иначе процедурная заглушка */
 export function createCoverTexture(
   title: string,
@@ -147,23 +158,41 @@ export function createCoverTexture(
   part: number,
   onLoaded?: (tex: THREE.Texture) => void,
 ): THREE.Texture {
-  const fallback = createProceduralCoverTexture(title, genreId, seriesIndex, part)
+  const key = `${genreId}-${seriesIndex}`
+  const entry = coverTextureCache.get(key)
 
-  const loader = new THREE.TextureLoader()
-  loader.load(
-    getCoverImageUrl(genreId, seriesIndex),
-    (loaded) => {
-      applyCoverTextureSettings(loaded)
-      onLoaded?.(loaded)
-      fallback.dispose()
-    },
-    undefined,
-    () => {
-      onLoaded?.(fallback)
-    },
-  )
+  if (entry?.ready) {
+    onLoaded?.(entry.texture)
+    return entry.texture
+  }
 
-  return fallback
+  if (onLoaded) {
+    const waiters = coverLoadWaiters.get(key) ?? []
+    waiters.push(onLoaded)
+    coverLoadWaiters.set(key, waiters)
+  }
+
+  if (!entry) {
+    const fallback = createProceduralCoverTexture(title, genreId, seriesIndex, part)
+    coverTextureCache.set(key, { texture: fallback, ready: false })
+
+    const loader = new THREE.TextureLoader()
+    loader.load(
+      getCoverImageUrl(genreId, seriesIndex),
+      (loaded) => {
+        applyCoverTextureSettings(loaded)
+        coverTextureCache.set(key, { texture: loaded, ready: true })
+        notifyCoverWaiters(key, loaded)
+      },
+      undefined,
+      () => {
+        coverTextureCache.set(key, { texture: fallback, ready: true })
+        notifyCoverWaiters(key, fallback)
+      },
+    )
+  }
+
+  return coverTextureCache.get(key)!.texture
 }
 
 function applyCoverTextureSettings(tex: THREE.Texture): void {
@@ -351,15 +380,21 @@ function shortSpineTitle(title: string, maxLen = 20): string {
 }
 
 /** Торец кассеты — жанр, название, номер части (видно в стопке) */
+const spineTextureCache = new Map<string, THREE.CanvasTexture>()
+
 export function createSpineTexture(
   title: string,
   genreId: number,
-  _seriesIndex: number,
+  seriesIndex: number,
   part: number,
 ): THREE.CanvasTexture {
+  const key = `${genreId}-${seriesIndex}-${part}`
+  const cached = spineTextureCache.get(key)
+  if (cached) return cached
+
   const genre = getGenre(genreId)
-  const w = 256
-  const h = 640
+  const w = 192
+  const h = 480
   const canvas = document.createElement('canvas')
   canvas.width = w
   canvas.height = h
@@ -394,7 +429,9 @@ export function createSpineTexture(
   ctx.textBaseline = 'bottom'
   ctx.fillText(String(part), w - 6, h - 12)
 
-  return makeTexture(canvas)
+  const tex = makeTexture(canvas)
+  spineTextureCache.set(key, tex)
+  return tex
 }
 
 /** Задняя сторона кассеты */

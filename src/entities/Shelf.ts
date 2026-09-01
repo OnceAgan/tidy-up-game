@@ -23,6 +23,9 @@ import {
 } from './cassettePlacement'
 import type { BoxCollider } from '../core/CollisionWorld'
 
+/** Светящиеся полоски — без расчёта освещения сцены */
+const SHELF_LED_STRIP_MAT = new THREE.MeshBasicMaterial({ color: 0xffe8c8 })
+
 export class Shelf {
   readonly root = new THREE.Group()
   readonly slots: ShelfSlot[] = []
@@ -71,8 +74,8 @@ export class Shelf {
       color: 0xd4c4a8,
       roughness: 0.78,
       metalness: 0,
-      emissive: 0x3a3028,
-      emissiveIntensity: 0.12,
+      emissive: 0x4a3828,
+      emissiveIntensity: 0.16,
     })
 
     const add = (
@@ -86,7 +89,7 @@ export class Shelf {
     ) => {
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat)
       mesh.position.set(x, y, z)
-      mesh.castShadow = true
+      mesh.castShadow = false
       mesh.receiveShadow = true
       this.root.add(mesh)
       return mesh
@@ -137,21 +140,13 @@ export class Shelf {
     add(innerW + 0.12, 0.06, 0.08, 0, crownY + SHELF_CROWN_H / 2 + 0.1, halfD + 0.04, trim)
   }
 
-  /** Тёплая подсветка внутри ячеек — LED-полоски + мягкий point light */
+  /** Тёплая подсветка: LED-полоски + один мягкий источник на стеллаж */
   private buildInteriorLighting(): void {
     const halfD = SHELF_DEPTH / 2
     const innerW = shelfHalfWidth() * 2 - SHELF_SIDE_W * 2 - 0.1
 
-    const stripMat = new THREE.MeshStandardMaterial({
-      color: 0xfff8ee,
-      emissive: 0xffd8a0,
-      emissiveIntensity: 1.15,
-      roughness: 0.92,
-      metalness: 0,
-    })
-
     const addLedStrip = (y: number) => {
-      const strip = new THREE.Mesh(new THREE.BoxGeometry(innerW, 0.012, 0.04), stripMat)
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(innerW, 0.012, 0.04), SHELF_LED_STRIP_MAT)
       strip.position.set(0, y - 0.007, halfD * 0.34)
       this.root.add(strip)
     }
@@ -161,15 +156,10 @@ export class Shelf {
     }
     addLedStrip(SHELF_PLANK_TOP_Y[1] + SHELF_COMPARTMENT_H + SHELF_CROWN_H - 0.03)
 
-    for (const slot of this.slots) {
-      const light = new THREE.PointLight(0xfff2dc, 0.52, 1.45, 2)
-      light.position.set(
-        slot.mesh.position.x,
-        slot.mesh.position.y + SHELF_COMPARTMENT_H * 0.4,
-        slot.mesh.position.z + halfD * 0.3,
-      )
-      this.root.add(light)
-    }
+    const midY = (SHELF_PLANK_TOP_Y[0] + SHELF_PLANK_TOP_Y[1] + SHELF_COMPARTMENT_H) / 2
+    const light = new THREE.PointLight(0xfff0d8, 0.7, 2.6, 2)
+    light.position.set(0, midY, halfD * 0.12)
+    this.root.add(light)
   }
 
   isSeriesAssigned(seriesIndex: number): boolean {

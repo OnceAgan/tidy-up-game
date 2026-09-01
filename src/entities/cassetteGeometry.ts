@@ -24,3 +24,13 @@ export function createCassetteGeometry(w: number, h: number, d: number): THREE.B
   uv.needsUpdate = true
   return geo
 }
+
+let sharedCassetteGeometry: THREE.BoxGeometry | null = null
+
+/** Одна геометрия на все кассеты — меньше памяти GPU */
+export function getSharedCassetteGeometry(w: number, h: number, d: number): THREE.BoxGeometry {
+  if (!sharedCassetteGeometry) {
+    sharedCassetteGeometry = createCassetteGeometry(w, h, d)
+  }
+  return sharedCassetteGeometry
+}
