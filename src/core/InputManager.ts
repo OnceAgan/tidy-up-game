@@ -7,13 +7,11 @@ export class InputManager {
   private dropQueued = false
   private wheelStep = 0
   private rmbHeld = false
-  private hintSuppressed = false
+  private inputBlocked = false
   private readonly domElement: HTMLElement
-  private readonly hintEl: HTMLElement | null
 
-  constructor(domElement: HTMLElement, hintEl: HTMLElement | null) {
+  constructor(domElement: HTMLElement) {
     this.domElement = domElement
-    this.hintEl = hintEl
     this.onKeyDown = this.onKeyDown.bind(this)
     this.onKeyUp = this.onKeyUp.bind(this)
     this.onMouseMove = this.onMouseMove.bind(this)
@@ -33,17 +31,15 @@ export class InputManager {
     this.domElement.addEventListener('mousedown', this.onMouseDown)
     this.domElement.addEventListener('contextmenu', this.onContextMenu)
     this.domElement.addEventListener('wheel', this.onWheel, { passive: true })
-    this.hintEl?.addEventListener('click', this.onClick)
   }
 
   get isPointerLocked(): boolean {
     return this.pointerLocked
   }
 
-  /** Скрыть стартовую подсказку (например, на экране победы) */
-  suppressHint(): void {
-    this.hintSuppressed = true
-    this.hintEl?.classList.add('hidden')
+  /** Заблокировать ввод (экран победы) */
+  blockInput(): void {
+    this.inputBlocked = true
   }
 
   isDown(code: string): boolean {
@@ -82,24 +78,20 @@ export class InputManager {
   }
 
   private onWheel(e: WheelEvent): void {
-    if (!this.pointerLocked || this.hintSuppressed) return
+    if (!this.pointerLocked || this.inputBlocked) return
     if (e.deltaY > 0) this.wheelStep = 1
     else if (e.deltaY < 0) this.wheelStep = -1
   }
 
   private onClick(): void {
-    if (this.hintSuppressed) return
-    if (!this.pointerLocked) {
-      this.domElement.requestPointerLock()
-      return
-    }
+    if (this.inputBlocked || !this.pointerLocked) return
     this.interactQueued = true
   }
 
   private onMouseDown(e: MouseEvent): void {
     if (e.button === 2) {
       e.preventDefault()
-      if (!this.hintSuppressed && this.pointerLocked) {
+      if (!this.inputBlocked && this.pointerLocked) {
         this.rmbHeld = true
       }
     }
@@ -120,13 +112,11 @@ export class InputManager {
     if (!this.pointerLocked) {
       this.rmbHeld = false
     }
-    if (!this.hintEl || this.hintSuppressed) return
-    this.hintEl.classList.toggle('hidden', this.pointerLocked)
   }
 
   private onKeyDown(e: KeyboardEvent): void {
     this.keys.add(e.code)
-    if (e.code === 'KeyE' && !e.repeat && this.pointerLocked && !this.hintSuppressed) {
+    if (e.code === 'KeyE' && !e.repeat && this.pointerLocked && !this.inputBlocked) {
       this.dropQueued = true
     }
   }

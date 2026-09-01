@@ -11,7 +11,7 @@ export class HeldList {
     this.panel.id = 'held-list'
     Object.assign(this.panel.style, {
       position: 'fixed',
-      top: '18px',
+      top: '96px',
       left: '18px',
       minWidth: '220px',
       maxWidth: '360px',
