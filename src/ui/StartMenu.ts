@@ -19,7 +19,7 @@ export class StartMenu {
     Object.assign(this.root.style, {
       position: 'fixed',
       inset: '0',
-      zIndex: '20',
+      zIndex: '100',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'flex-start',
@@ -78,6 +78,9 @@ export class StartMenu {
     this.root.append(panel)
     document.body.appendChild(this.root)
 
+    this.canvas.style.visibility = 'hidden'
+    this.canvas.style.pointerEvents = 'none'
+
     document.addEventListener('pointerlockchange', this.onPointerLockChange)
   }
 
@@ -114,6 +117,8 @@ export class StartMenu {
   }
 
   private startGame(): void {
+    this.canvas.style.visibility = 'visible'
+    this.canvas.style.pointerEvents = 'auto'
     this.canvas.requestPointerLock()
   }
 
@@ -121,6 +126,10 @@ export class StartMenu {
     if (this.suppressed) return
     const locked = document.pointerLockElement === this.canvas
     this.root.style.display = locked ? 'none' : 'flex'
+    if (!locked) {
+      this.canvas.style.visibility = 'hidden'
+      this.canvas.style.pointerEvents = 'none'
+    }
   }
 
   /** Скрыть меню навсегда (экран победы) */
