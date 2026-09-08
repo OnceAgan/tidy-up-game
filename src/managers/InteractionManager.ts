@@ -7,6 +7,7 @@ import type { ShelfSlot } from '../entities/ShelfSlot'
 import type { Shelf } from '../entities/Shelf'
 import type { Interactable } from '../entities/Interactable'
 import { computeFloorPlacement, flatFloorRotation, footprintFromMesh, shelfLocalPose } from '../entities/cassettePlacement'
+import type { AudioManager } from '../audio/AudioManager'
 
 const MAX_STACK = 5
 /** Толщина кассеты вдоль оси «назад» (локальный −Z → hold +X при HOLD_CASSETTE_ROT) */
@@ -32,6 +33,7 @@ export class InteractionManager {
   private readonly cassettes: Cassette[]
   private readonly slots: ShelfSlot[]
   private readonly shelves: Shelf[]
+  private readonly audio: AudioManager | null
   private onPlaced: (() => void) | null = null
 
   constructor(
@@ -42,6 +44,7 @@ export class InteractionManager {
     cassettes: Cassette[],
     slots: ShelfSlot[],
     shelves: Shelf[],
+    audio: AudioManager | null = null,
   ) {
     this.camera = camera
     this.scene = scene
@@ -50,6 +53,7 @@ export class InteractionManager {
     this.cassettes = cassettes
     this.slots = slots
     this.shelves = shelves
+    this.audio = audio
 
     this.holdRoot.position.copy(HOLD_POS)
     this.holdRoot.rotation.copy(HOLD_ROT)
@@ -153,6 +157,7 @@ export class InteractionManager {
     cassette.held = true
     cassette.setHighlight(false)
     this.stack.push(cassette)
+    this.audio?.playPickup()
 
     cassette.mesh.updateWorldMatrix(true, false)
     const startPos = new THREE.Vector3()
@@ -197,6 +202,7 @@ export class InteractionManager {
         cassette.mesh.position.copy(pose.position)
         cassette.mesh.rotation.copy(pose.rotation)
         cassette.mesh.renderOrder = 10
+        this.audio?.playPlace()
         this.busy = false
         this.refreshShelfForSlot(slot)
         this.onPlaced?.()
@@ -211,6 +217,7 @@ export class InteractionManager {
     cassette.held = false
     cassette.placed = false
     cassette.mesh.renderOrder = 0
+    this.audio?.playDrop()
 
     const dropPoint = this.getCameraFloorPoint()
     const dropX = dropPoint.x

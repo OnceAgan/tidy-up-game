@@ -13,6 +13,7 @@ import { PerfPanel } from './ui/PerfPanel'
 import { StartMenu } from './ui/StartMenu'
 import { ProgressHud } from './ui/ProgressHud'
 import { ControlsHint } from './ui/ControlsHint'
+import { AudioManager } from './audio/AudioManager'
 import type { Cassette } from './entities/Cassette'
 
 const app = document.querySelector<HTMLDivElement>('#app')
@@ -23,7 +24,8 @@ if (!app) {
 
 const engine = new Engine(app)
 const input = new InputManager(engine.renderer.domElement)
-const startMenu = new StartMenu(engine.renderer.domElement)
+const audio = new AudioManager()
+const startMenu = new StartMenu(engine.renderer.domElement, audio)
 const progressHud = new ProgressHud()
 const controlsHint = new ControlsHint()
 const level = new LevelManager()
@@ -41,6 +43,7 @@ const interaction = new InteractionManager(
   level.cassettes,
   level.slots,
   level.shelves,
+  audio,
 )
 
 const winScreen = new WinScreen(() => {
@@ -53,6 +56,7 @@ const gameState = new GameStateManager(() => {
   startMenu.suppress()
   controlsHint.hide()
   progressHud.hide()
+  audio.pauseMusic()
   crosshair.setVisible(false)
   hoverLabel.hide()
   heldList.update([])
