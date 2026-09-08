@@ -1,3 +1,6 @@
+import type { AudioManager } from '../audio/AudioManager'
+import { SoundToggle } from './SoundToggle'
+
 const MENU_BG_URL = `${import.meta.env.BASE_URL}ui/menu/menu-bg.jpg`
 
 type MenuItem = {
@@ -9,10 +12,12 @@ type MenuItem = {
 export class StartMenu {
   private readonly root: HTMLDivElement
   private readonly canvas: HTMLElement
+  private readonly audio: AudioManager
   private suppressed = false
 
-  constructor(canvas: HTMLElement) {
+  constructor(canvas: HTMLElement, audio: AudioManager) {
     this.canvas = canvas
+    this.audio = audio
 
     this.root = document.createElement('div')
     this.root.id = 'start-menu'
@@ -29,6 +34,8 @@ export class StartMenu {
       backgroundPosition: 'center',
       userSelect: 'none',
     } as CSSStyleDeclaration)
+
+    new SoundToggle(audio, this.root)
 
     const panel = document.createElement('div')
     Object.assign(panel.style, {
@@ -117,6 +124,7 @@ export class StartMenu {
   }
 
   private startGame(): void {
+    this.audio.unlock()
     this.canvas.style.visibility = 'visible'
     this.canvas.style.pointerEvents = 'auto'
     this.canvas.requestPointerLock()
