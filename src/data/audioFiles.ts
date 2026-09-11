@@ -1,4 +1,4 @@
-/** MP3-файлы в `public/audio/` */
+/** MP3 в `public/audio/` */
 export const AUDIO_FILES = {
   music: 'music.mp3',
   pickup: 'pickup.mp3',
