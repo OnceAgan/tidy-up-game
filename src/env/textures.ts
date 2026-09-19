@@ -217,6 +217,117 @@ export function createFurnitureWoodTexture(): THREE.CanvasTexture {
   return furnitureWoodTexture
 }
 
+export type ShelfWoodPbr = {
+  color: THREE.Texture
+  normal: THREE.Texture
+}
+
+let shelfWoodPbr: ShelfWoodPbr | null = null
+let shelfWoodPbrLoading = false
+const shelfWoodPbrWaiters: Array<(pbr: ShelfWoodPbr) => void> = []
+
+function applyShelfWoodPbrMaps(color: THREE.Texture, normal: THREE.Texture): ShelfWoodPbr {
+  color.colorSpace = THREE.SRGBColorSpace
+  for (const tex of [color, normal]) {
+    tex.wrapS = THREE.RepeatWrapping
+    tex.wrapT = THREE.RepeatWrapping
+    tex.repeat.set(1.15, 1.15)
+    tex.anisotropy = 8
+    tex.minFilter = THREE.LinearMipmapLinearFilter
+    tex.magFilter = THREE.LinearFilter
+    tex.generateMipmaps = true
+    tex.needsUpdate = true
+  }
+  return { color, normal }
+}
+
+/** PBR-дерево для стеллажей (color + normal из public/textures/) */
+export function loadShelfWoodPbr(onLoaded: (pbr: ShelfWoodPbr) => void): void {
+  if (shelfWoodPbr) {
+    onLoaded(shelfWoodPbr)
+    return
+  }
+  shelfWoodPbrWaiters.push(onLoaded)
+  if (shelfWoodPbrLoading) return
+  shelfWoodPbrLoading = true
+
+  const loader = new THREE.TextureLoader()
+  const fallback = createFurnitureWoodTexture()
+
+  loader.load(
+    roomTextureUrl('shelf-wood-color.jpg'),
+    (color) => {
+      loader.load(
+        roomTextureUrl('shelf-wood-normal.jpg'),
+        (normal) => {
+          shelfWoodPbr = applyShelfWoodPbrMaps(color, normal)
+          fallback.dispose()
+          shelfWoodPbrLoading = false
+          for (const cb of shelfWoodPbrWaiters) cb(shelfWoodPbr)
+          shelfWoodPbrWaiters.length = 0
+        },
+        undefined,
+        () => finishShelfWoodPbrFallback(),
+      )
+    },
+    undefined,
+    () => finishShelfWoodPbrFallback(),
+  )
+}
+
+function finishShelfWoodPbrFallback(): void {
+  shelfWoodPbrLoading = false
+  shelfWoodPbrWaiters.length = 0
+}
+
+export type ShelfWoodVariant = 'horizontal' | 'vertical' | 'flat'
+
+function cloneShelfMaps(pbr: ShelfWoodPbr, variant: ShelfWoodVariant): {
+  color: THREE.Texture
+  normal: THREE.Texture | null
+  normalScale: number
+} {
+  const color = pbr.color.clone()
+  color.wrapS = THREE.RepeatWrapping
+  color.wrapT = THREE.RepeatWrapping
+  color.colorSpace = THREE.SRGBColorSpace
+  color.anisotropy = 8
+
+  if (variant === 'horizontal') {
+    color.repeat.set(0.65, 0.42)
+    const normal = pbr.normal.clone()
+    normal.wrapS = THREE.RepeatWrapping
+    normal.wrapT = THREE.RepeatWrapping
+    normal.repeat.copy(color.repeat)
+    normal.anisotropy = 8
+    return { color, normal, normalScale: 0.16 }
+  }
+
+  if (variant === 'vertical') {
+    color.repeat.set(0.38, 0.75)
+    color.rotation = Math.PI / 2
+    color.center.set(0.5, 0.5)
+    return { color, normal: null, normalScale: 0 }
+  }
+
+  color.repeat.set(1.2, 1.2)
+  return { color, normal: null, normalScale: 0 }
+}
+
+export function applyShelfWoodPbr(
+  material: THREE.MeshStandardMaterial,
+  variant: ShelfWoodVariant = 'horizontal',
+): void {
+  material.map = createFurnitureWoodTexture()
+  loadShelfWoodPbr((pbr) => {
+    const maps = cloneShelfMaps(pbr, variant)
+    material.map = maps.color
+    material.normalMap = maps.normal
+    material.normalScale.set(maps.normalScale, maps.normalScale)
+    material.needsUpdate = true
+  })
+}
+
 /** Однотонный потолок с лёгким шумом */
 export function createCeilingTexture(): THREE.CanvasTexture {
   const size = 128

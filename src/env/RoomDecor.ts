@@ -1,5 +1,7 @@
 import * as THREE from 'three'
+import { createBoostBoardTexture } from './coverArt'
 import { createFurnitureWoodTexture, createWallPictureTexture } from './textures'
+import { addWindows } from './windowAssembly'
 import type { BoxCollider } from '../core/CollisionWorld'
 
 export type DecorColliders = BoxCollider[]
@@ -22,7 +24,11 @@ export function buildRoomDecor(
   const colliders: DecorColliders = []
 
   addWallPictures(parent, halfW, halfD, wallHeight)
-  addWindowPosters(parent, halfD)
+  addBoostBoard(parent, halfW, halfD)
+  addWindows(parent, [
+    { x: -2.4, z: -halfD + 0.11, rotY: 0 },
+    { x: 2.4, z: halfD - 0.11, rotY: Math.PI },
+  ])
   addRug(parent)
   addCeilingLights(parent, wallHeight)
   addBaseboards(parent, halfW, halfD, woodMat)
@@ -64,43 +70,25 @@ function addWallPictures(parent: THREE.Group, halfW: number, halfD: number, wall
   void wallHeight
 }
 
-/** Превью: окно как картинка на стене (2D-текстура) */
-function addWindowPosters(parent: THREE.Group, halfD: number): void {
-  const url = `${import.meta.env.BASE_URL}textures/window-curtains.jpg`
-  const tex = new THREE.TextureLoader().load(url)
-  tex.colorSpace = THREE.SRGBColorSpace
+function addBoostBoard(parent: THREE.Group, halfW: number, halfD: number): void {
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x6b5344, roughness: 0.6 })
+  const boardW = 0.95
+  const boardH = 1.2
+  const group = new THREE.Group()
+  group.position.set(-halfW + 0.11, 1.75, 0.2)
+  group.rotation.y = Math.PI / 2
 
-  const width = 1.85
-  const height = width * (875 / 1024)
-  const centerY = 1.62
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(boardW + 0.08, boardH + 0.08, 0.05), frameMat)
+  group.add(frame)
 
-  const mat = new THREE.MeshBasicMaterial({ map: tex })
-  const frameMat = new THREE.MeshStandardMaterial({ color: 0x8a7358, roughness: 0.55, metalness: 0.1 })
+  const boardMat = new THREE.MeshStandardMaterial({ roughness: 0.9 })
+  boardMat.map = createBoostBoardTexture()
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(boardW, boardH), boardMat)
+  board.position.z = 0.028
+  group.add(board)
 
-  const placements: Array<{ x: number; z: number; rotY: number }> = [
-    { x: -2.4, z: -halfD + 0.11, rotY: 0 },
-    { x: 2.4, z: halfD - 0.11, rotY: Math.PI },
-  ]
-
-  for (const p of placements) {
-    const group = new THREE.Group()
-    group.position.set(p.x, centerY, p.z)
-    group.rotation.y = p.rotY
-
-    const frame = new THREE.Mesh(
-      new THREE.BoxGeometry(width + 0.1, height + 0.1, 0.04),
-      frameMat,
-    )
-    frame.position.z = -0.02
-    frame.castShadow = false
-    group.add(frame)
-
-    const poster = new THREE.Mesh(new THREE.PlaneGeometry(width, height), mat)
-    poster.position.z = 0.025
-    group.add(poster)
-
-    parent.add(group)
-  }
+  parent.add(group)
+  void halfD
 }
 
 function addRug(parent: THREE.Group): void {

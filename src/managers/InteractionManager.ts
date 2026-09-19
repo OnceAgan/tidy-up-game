@@ -64,6 +64,10 @@ export class InteractionManager {
     return this.stack
   }
 
+  get topHeld(): Cassette | null {
+    return this.stack.length > 0 ? this.stack[this.stack.length - 1] : null
+  }
+
   get hoveredTarget(): Interactable | null {
     return this.hovered
   }

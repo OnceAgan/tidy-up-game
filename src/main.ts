@@ -13,6 +13,8 @@ import { PerfPanel } from './ui/PerfPanel'
 import { StartMenu } from './ui/StartMenu'
 import { ProgressHud } from './ui/ProgressHud'
 import { ControlsHint } from './ui/ControlsHint'
+import { BoostHud } from './ui/BoostHud'
+import { BoostManager } from './managers/BoostManager'
 import { AudioManager } from './audio/AudioManager'
 import type { Cassette } from './entities/Cassette'
 
@@ -28,6 +30,8 @@ const audio = new AudioManager()
 const startMenu = new StartMenu(engine.renderer.domElement, audio)
 const progressHud = new ProgressHud()
 const controlsHint = new ControlsHint()
+const boostHud = new BoostHud()
+const boostManager = new BoostManager(engine.scene)
 const level = new LevelManager()
 const player = new Player(engine.camera, input, level.bounds, level.colliders)
 const raycast = new Raycast(engine.camera)
@@ -56,6 +60,7 @@ const gameState = new GameStateManager(() => {
   startMenu.suppress()
   controlsHint.hide()
   progressHud.hide()
+  boostHud.hide()
   audio.pauseMusic()
   crosshair.setVisible(false)
   hoverLabel.hide()
@@ -64,6 +69,7 @@ const gameState = new GameStateManager(() => {
 })
 
 interaction.setOnPlaced(() => {
+  boostManager.checkShelvesAfterPlace(level.shelves)
   progressHud.update(level.cassettes, level.shelves)
   gameState.check(level.cassettes)
 })
@@ -76,6 +82,7 @@ document.addEventListener('pointerlockchange', () => {
   const inGame = document.pointerLockElement === engine.renderer.domElement
   if (inGame && !gameState.isWon) {
     progressHud.show()
+    boostHud.show()
     refreshProgress()
     controlsHint.onGameStart()
   } else if (!gameState.isWon) {
@@ -89,6 +96,7 @@ engine.scene.add(player.yawObject)
 engine.setUpdate((dt) => {
   perfPanel.update(dt, engine.scene, engine.renderer, level.cassettes.length, level.shelves)
   if (gameState.isWon) return
+  boostManager.update(dt)
   player.update(dt)
   crosshair.setVisible(input.isPointerLocked)
 
@@ -116,6 +124,12 @@ engine.setUpdate((dt) => {
     if (wheel !== 0) {
       interaction.cycleStack(wheel)
     }
+
+    if (input.consumeSkill1()) {
+      boostManager.tryActivateSeriesHighlight(interaction.topHeld, level.cassettes)
+    }
+
+    boostHud.update(boostManager.getHudState(), interaction.topHeld !== null)
   } else {
     hoverLabel.hide()
     heldList.update([])

@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { ShelfSlot } from './ShelfSlot'
-import { createFurnitureWoodTexture } from '../env/textures'
+import { applyShelfWoodPbr } from '../env/textures'
 import { createCategoryLabelTexture } from '../env/coverArt'
 import { getGenre } from '../data/cassetteCatalog'
 import {
@@ -44,39 +44,57 @@ export class Shelf {
   }
 
   private buildFrame(): void {
-    const woodTex = createFurnitureWoodTexture()
     const body = new THREE.MeshStandardMaterial({
-      map: woodTex,
-      color: 0xf0dcc0,
-      roughness: 0.52,
+      color: 0xfff8f0,
+      roughness: 0.56,
+      metalness: 0.02,
+    })
+    const bodyVertical = new THREE.MeshStandardMaterial({
+      color: 0xfff8f0,
+      roughness: 0.58,
       metalness: 0.02,
     })
     const light = new THREE.MeshStandardMaterial({
-      map: woodTex,
-      color: 0xf8efe0,
-      roughness: 0.45,
+      color: 0xffffff,
+      roughness: 0.48,
+      metalness: 0.02,
+    })
+    const lightVertical = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.5,
       metalness: 0.02,
     })
     const trim = new THREE.MeshStandardMaterial({
-      map: woodTex,
-      color: 0xc4a484,
-      roughness: 0.38,
+      color: 0xf0e0d0,
+      roughness: 0.4,
+      metalness: 0.03,
+    })
+    const trimVertical = new THREE.MeshStandardMaterial({
+      color: 0xf0e0d0,
+      roughness: 0.42,
       metalness: 0.03,
     })
     const dark = new THREE.MeshStandardMaterial({
-      map: woodTex,
-      color: 0x9a7858,
-      roughness: 0.62,
+      color: 0xd8c8b0,
+      roughness: 0.64,
       metalness: 0.01,
     })
     const back = new THREE.MeshStandardMaterial({
-      map: woodTex,
-      color: 0xd4c4a8,
-      roughness: 0.78,
+      color: 0xfff4e8,
+      roughness: 0.72,
       metalness: 0,
       emissive: 0x4a3828,
       emissiveIntensity: 0.16,
     })
+
+    applyShelfWoodPbr(body, 'horizontal')
+    applyShelfWoodPbr(bodyVertical, 'vertical')
+    applyShelfWoodPbr(light, 'horizontal')
+    applyShelfWoodPbr(lightVertical, 'vertical')
+    applyShelfWoodPbr(trim, 'horizontal')
+    applyShelfWoodPbr(trimVertical, 'vertical')
+    applyShelfWoodPbr(dark, 'horizontal')
+    applyShelfWoodPbr(back, 'flat')
 
     const add = (
       w: number,
@@ -103,9 +121,9 @@ export class Shelf {
     // Боковины
     for (const sx of [-1, 1] as const) {
       const x = sx * (halfW - SHELF_SIDE_W / 2)
-      add(SHELF_SIDE_W, SHELF_TOTAL_H, SHELF_DEPTH, x, SHELF_TOTAL_H / 2, 0, body)
-      add(0.018, SHELF_TOTAL_H - 0.12, SHELF_DEPTH - 0.04, x + sx * 0.028, midY, 0.02, light)
-      add(0.035, SHELF_TOTAL_H - 0.08, 0.025, x + sx * 0.04, SHELF_TOTAL_H - 0.1, halfD - 0.01, trim)
+      add(SHELF_SIDE_W, SHELF_TOTAL_H, SHELF_DEPTH, x, SHELF_TOTAL_H / 2, 0, bodyVertical)
+      add(0.018, SHELF_TOTAL_H - 0.12, SHELF_DEPTH - 0.04, x + sx * 0.028, midY, 0.02, lightVertical)
+      add(0.035, SHELF_TOTAL_H - 0.08, 0.025, x + sx * 0.04, SHELF_TOTAL_H - 0.1, halfD - 0.01, trimVertical)
     }
 
     // Цоколь
@@ -129,7 +147,7 @@ export class Shelf {
     const divY = (SHELF_PLANK_TOP_Y[0] + SHELF_PLANK_TOP_Y[1] + SHELF_COMPARTMENT_H) / 2
     const divX = shelfColumnXs()[0] + shelfSectionWidth() / 2 + SHELF_COL_GAP / 2
     for (const x of [-divX, divX]) {
-      add(SHELF_DIVIDER_W, divH, SHELF_DEPTH - 0.08, x, divY, 0, trim)
+      add(SHELF_DIVIDER_W, divH, SHELF_DEPTH - 0.08, x, divY, 0, trimVertical)
     }
 
     // Верхняя крышка + фронтон (декор только снаружи, выше кассет)
@@ -157,7 +175,7 @@ export class Shelf {
     addLedStrip(SHELF_PLANK_TOP_Y[1] + SHELF_COMPARTMENT_H + SHELF_CROWN_H - 0.03)
 
     const midY = (SHELF_PLANK_TOP_Y[0] + SHELF_PLANK_TOP_Y[1] + SHELF_COMPARTMENT_H) / 2
-    const light = new THREE.PointLight(0xfff0d8, 0.7, 2.6, 2)
+    const light = new THREE.PointLight(0xfff0d8, 0.48, 2.4, 2)
     light.position.set(0, midY, halfD * 0.12)
     this.root.add(light)
   }

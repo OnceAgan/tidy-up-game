@@ -341,6 +341,60 @@ export function createCategoryLabelTexture(label: string, completed = false): TH
   return tex
 }
 
+/** Доска бустов на стене комнаты */
+export function createBoostBoardTexture(): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas')
+  canvas.width = 512
+  canvas.height = 640
+  const ctx = canvas.getContext('2d')!
+
+  ctx.fillStyle = '#c4a574'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.strokeStyle = '#5c4a32'
+  ctx.lineWidth = 12
+  ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16)
+
+  ctx.fillStyle = '#f8f4ea'
+  ctx.fillRect(24, 24, canvas.width - 48, canvas.height - 48)
+
+  ctx.fillStyle = '#2a241c'
+  ctx.font = 'bold 36px Georgia, serif'
+  ctx.textAlign = 'center'
+  ctx.fillText('Навыки', canvas.width / 2, 72)
+
+  ctx.strokeStyle = '#8a7358'
+  ctx.lineWidth = 2
+  ctx.beginPath()
+  ctx.moveTo(48, 88)
+  ctx.lineTo(canvas.width - 48, 88)
+  ctx.stroke()
+
+  ctx.textAlign = 'left'
+  ctx.font = 'bold 26px Arial, sans-serif'
+  ctx.fillStyle = '#1a4a2a'
+  ctx.fillText('1 · Подсветка серии', 48, 140)
+
+  ctx.font = '22px Arial, sans-serif'
+  ctx.fillStyle = '#333'
+  const body =
+    'Заполни полку одной категории целиком — навык готов. Возьми любую кассету серии и нажми 1: на полу подсветятся остальные части этой серии на 15 сек.'
+  const lines = wrapLines(ctx, body, canvas.width - 96, 8)
+  let y = 175
+  for (const line of lines) {
+    ctx.fillText(line, 48, y)
+    y += 30
+  }
+
+  ctx.font = 'italic 20px Georgia, serif'
+  ctx.fillStyle = '#666'
+  ctx.fillText('Следующие навыки — скоро', 48, canvas.height - 56)
+
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.colorSpace = THREE.SRGBColorSpace
+  tex.needsUpdate = true
+  return tex
+}
+
 function roundRect(
   ctx: CanvasRenderingContext2D,
   x: number,

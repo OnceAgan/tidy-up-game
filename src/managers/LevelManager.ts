@@ -11,6 +11,7 @@ import {
   createWoodFloorTexture,
 } from '../env/textures'
 import { buildRoomDecor } from '../env/RoomDecor'
+import { buildRoomWalls } from '../env/roomWalls'
 import type { BoxCollider } from '../core/CollisionWorld'
 
 const ROOM_WIDTH = 10
@@ -67,22 +68,10 @@ export class LevelManager {
       wallMat.map = tex
       wallMat.needsUpdate = true
     })
-    const halfW = ROOM_WIDTH / 2
-    const halfD = ROOM_DEPTH / 2
-
-    const walls: Array<{ w: number; h: number; d: number; x: number; y: number; z: number }> = [
-      { w: ROOM_WIDTH, h: WALL_HEIGHT, d: WALL_THICKNESS, x: 0, y: WALL_HEIGHT / 2, z: -halfD },
-      { w: ROOM_WIDTH, h: WALL_HEIGHT, d: WALL_THICKNESS, x: 0, y: WALL_HEIGHT / 2, z: halfD },
-      { w: WALL_THICKNESS, h: WALL_HEIGHT, d: ROOM_DEPTH, x: -halfW, y: WALL_HEIGHT / 2, z: 0 },
-      { w: WALL_THICKNESS, h: WALL_HEIGHT, d: ROOM_DEPTH, x: halfW, y: WALL_HEIGHT / 2, z: 0 },
-    ]
-
-    for (const w of walls) {
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w.w, w.h, w.d), wallMat)
-      mesh.position.set(w.x, w.y, w.z)
-      mesh.receiveShadow = true
-      this.root.add(mesh)
-    }
+    buildRoomWalls(this.root, wallMat, ROOM_WIDTH, ROOM_DEPTH, WALL_HEIGHT, WALL_THICKNESS, {
+      north: { centerX: -2.4 },
+      south: { centerX: 2.4 },
+    })
 
     const ceilingTex = createCeilingTexture()
     const ceiling = new THREE.Mesh(
