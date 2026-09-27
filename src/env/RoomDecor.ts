@@ -1,10 +1,12 @@
 import * as THREE from 'three'
+import { createBoostBoardTexture } from './coverArt'
 import { createFurnitureWoodTexture, createWallPictureTexture } from './textures'
+import { addWindows } from './windowAssembly'
 import type { BoxCollider } from '../core/CollisionWorld'
 
 export type DecorColliders = BoxCollider[]
 
-/** Декор комнаты: окна, мебель, картины, ковёр */
+/** Декор комнаты: картины, ковёр, свет, плинтусы */
 export function buildRoomDecor(
   parent: THREE.Group,
   roomWidth: number,
@@ -21,81 +23,17 @@ export function buildRoomDecor(
   })
   const colliders: DecorColliders = []
 
-  addWindowWithCurtains(parent, -2.4, -halfD + 0.12)
-  addWindowWithCurtains(parent, 2.4, halfD - 0.12, Math.PI)
-  colliders.push({ cx: -2.4, cz: -halfD + 0.38, halfW: 1.1, halfD: 0.4, rotY: 0 })
-  colliders.push({ cx: 2.4, cz: halfD - 0.38, halfW: 1.1, halfD: 0.4, rotY: 0 })
-
   addWallPictures(parent, halfW, halfD, wallHeight)
+  addBoostBoard(parent, halfW, halfD)
+  addWindows(parent, [
+    { x: -2.4, z: -halfD + 0.11, rotY: 0 },
+    { x: 2.4, z: halfD - 0.11, rotY: Math.PI },
+  ])
   addRug(parent)
-  addArmchair(parent, halfW - 1.3, halfD - 2.2, -0.6, colliders)
-  addFloorLamp(parent, -halfW + 1.6, halfD - 2.4)
-  addNightstand(parent, woodMat, halfW - 1.4, -halfD + 1.8, colliders)
   addCeilingLights(parent, wallHeight)
   addBaseboards(parent, halfW, halfD, woodMat)
 
   return colliders
-}
-
-function addWindowWithCurtains(
-  parent: THREE.Group,
-  x: number,
-  z: number,
-  rotY = 0,
-): void {
-  const windowGroup = new THREE.Group()
-  windowGroup.position.set(x, 1.7, z)
-  windowGroup.rotation.y = rotY
-
-  const frameMat = new THREE.MeshStandardMaterial({ color: 0xf0e6d8, roughness: 0.68 })
-  const glassMat = new THREE.MeshStandardMaterial({
-    color: 0xa8c8e0,
-    transparent: true,
-    opacity: 0.42,
-    roughness: 0.08,
-    metalness: 0.15,
-  })
-
-  const outer = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.35, 0.08), frameMat)
-  outer.castShadow = false
-  windowGroup.add(outer)
-
-  const glass = new THREE.Mesh(new THREE.BoxGeometry(1.28, 1.12, 0.03), glassMat)
-  glass.position.z = 0.02
-  windowGroup.add(glass)
-
-  const mullionV = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.12, 0.04), frameMat)
-  mullionV.position.z = 0.03
-  windowGroup.add(mullionV)
-  const mullionH = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.05, 0.04), frameMat)
-  mullionH.position.z = 0.03
-  windowGroup.add(mullionH)
-
-  const sill = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.06, 0.22), frameMat)
-  sill.position.set(0, -0.72, 0.1)
-  sill.castShadow = false
-  windowGroup.add(sill)
-
-  const curtainMat = new THREE.MeshStandardMaterial({
-    color: 0xd4b896,
-    roughness: 0.95,
-    side: THREE.DoubleSide,
-  })
-  for (const side of [-1, 1] as const) {
-    const curtain = new THREE.Mesh(new THREE.BoxGeometry(0.38, 2.0, 0.04), curtainMat)
-    curtain.position.set(side * 0.95, -0.25, 0.12)
-    curtain.castShadow = false
-    windowGroup.add(curtain)
-  }
-
-  const rod = new THREE.Mesh(
-    new THREE.BoxGeometry(2.2, 0.05, 0.05),
-    new THREE.MeshStandardMaterial({ color: 0xb0a090, metalness: 0.45, roughness: 0.38 }),
-  )
-  rod.position.set(0, 0.85, 0.14)
-  windowGroup.add(rod)
-
-  parent.add(windowGroup)
 }
 
 function addWallPictures(parent: THREE.Group, halfW: number, halfD: number, wallHeight: number): void {
@@ -132,6 +70,27 @@ function addWallPictures(parent: THREE.Group, halfW: number, halfD: number, wall
   void wallHeight
 }
 
+function addBoostBoard(parent: THREE.Group, halfW: number, halfD: number): void {
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0x6b5344, roughness: 0.6 })
+  const boardW = 0.95
+  const boardH = 1.2
+  const group = new THREE.Group()
+  group.position.set(-halfW + 0.11, 1.75, 0.2)
+  group.rotation.y = Math.PI / 2
+
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(boardW + 0.08, boardH + 0.08, 0.05), frameMat)
+  group.add(frame)
+
+  const boardMat = new THREE.MeshStandardMaterial({ roughness: 0.9 })
+  boardMat.map = createBoostBoardTexture()
+  const board = new THREE.Mesh(new THREE.PlaneGeometry(boardW, boardH), boardMat)
+  board.position.z = 0.028
+  group.add(board)
+
+  parent.add(group)
+  void halfD
+}
+
 function addRug(parent: THREE.Group): void {
   const loader = new THREE.TextureLoader()
   const rugTex = loader.load(`${import.meta.env.BASE_URL}textures/rug.jpg`)
@@ -153,106 +112,6 @@ function addRug(parent: THREE.Group): void {
   rug.position.set(0, 0.018, 1.2)
   rug.receiveShadow = true
   parent.add(rug)
-}
-
-function addArmchair(
-  parent: THREE.Group,
-  x: number,
-  z: number,
-  rotY: number,
-  colliders: DecorColliders,
-): void {
-  const group = new THREE.Group()
-  group.position.set(x, 0, z)
-  group.rotation.y = rotY
-  const fabric = new THREE.MeshStandardMaterial({ color: 0x6a5a4a, roughness: 0.92 })
-  const seat = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.22, 0.7), fabric)
-  seat.position.y = 0.38
-  seat.castShadow = false
-  group.add(seat)
-  const back = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.55, 0.12), fabric)
-  back.position.set(0, 0.68, -0.29)
-  back.castShadow = false
-  group.add(back)
-  const armL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.35, 0.65), fabric)
-  armL.position.set(-0.33, 0.52, 0)
-  group.add(armL)
-  const armR = armL.clone()
-  armR.position.x = 0.33
-  group.add(armR)
-  parent.add(group)
-  colliders.push({ cx: x, cz: z, halfW: 0.42, halfD: 0.38, rotY })
-}
-
-function addFloorLamp(parent: THREE.Group, x: number, z: number): void {
-  const group = new THREE.Group()
-  group.position.set(x, 0, z)
-  const metal = new THREE.MeshStandardMaterial({ color: 0xb8a078, metalness: 0.55, roughness: 0.4 })
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 1.55, 8), metal)
-  pole.position.y = 0.78
-  pole.castShadow = false
-  group.add(pole)
-  const shade = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.18, 0.28, 0.22, 16, 1, true),
-    new THREE.MeshStandardMaterial({
-      color: 0xf5ead0,
-      emissive: 0xffe0a8,
-      emissiveIntensity: 0.25,
-      roughness: 0.7,
-      side: THREE.DoubleSide,
-    }),
-  )
-  shade.position.y = 1.52
-  group.add(shade)
-  const light = new THREE.PointLight(0xffe8c0, 0.55, 5, 2)
-  light.position.y = 1.45
-  group.add(light)
-  parent.add(group)
-}
-
-function addNightstand(
-  parent: THREE.Group,
-  woodMat: THREE.Material,
-  x: number,
-  z: number,
-  colliders: DecorColliders,
-): void {
-  const group = new THREE.Group()
-  group.position.set(x, 0, z)
-
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.5, 0.4), woodMat)
-  body.position.y = 0.35
-  body.castShadow = false
-  group.add(body)
-
-  const top = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.04, 0.45), woodMat)
-  top.position.y = 0.62
-  group.add(top)
-
-  const vase = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.07, 0.09, 0.24, 12),
-    new THREE.MeshStandardMaterial({ color: 0x7a9480, roughness: 0.32 }),
-  )
-  vase.position.set(0.05, 0.76, 0)
-  vase.castShadow = false
-  group.add(vase)
-
-  const stemMat = new THREE.MeshStandardMaterial({ color: 0x4a6b3a, roughness: 0.8 })
-  for (let i = 0; i < 3; i++) {
-    const angle = (i / 3) * Math.PI * 2
-    const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.01, 0.3, 6), stemMat)
-    stem.position.set(Math.cos(angle) * 0.03, 1.0, Math.sin(angle) * 0.03)
-    group.add(stem)
-    const bloom = new THREE.Mesh(
-      new THREE.SphereGeometry(0.05, 8, 8),
-      new THREE.MeshStandardMaterial({ color: [0xd4707a, 0xe8c96a, 0xd490b0][i], roughness: 0.7 }),
-    )
-    bloom.position.set(Math.cos(angle) * 0.04, 1.14, Math.sin(angle) * 0.04)
-    group.add(bloom)
-  }
-
-  parent.add(group)
-  colliders.push({ cx: x, cz: z, halfW: 0.36, halfD: 0.32, rotY: 0 })
 }
 
 function addCeilingLights(parent: THREE.Group, wallHeight: number): void {

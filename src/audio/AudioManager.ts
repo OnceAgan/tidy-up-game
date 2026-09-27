@@ -1,63 +1,150 @@
 import { AUDIO_FILES, audioUrl, type SfxId } from '../data/audioFiles'
 
-const STORAGE_KEY = 'tidy-up-game-sound-enabled'
+const LEGACY_SOUND_KEY = 'tidy-up-game-sound-enabled'
+const MUSIC_KEY = 'tidy-up-game-music-enabled'
+const SFX_KEY = 'tidy-up-game-sfx-enabled'
+const MUSIC_VOLUME_KEY = 'tidy-up-game-music-volume'
+const SFX_VOLUME_KEY = 'tidy-up-game-sfx-volume'
+
+const DEFAULT_MUSIC_VOLUME = 0.32
+const DEFAULT_SFX_VOLUME = 1
+
+function readFlag(key: string, fallback: boolean): boolean {
+  const stored = localStorage.getItem(key)
+  if (stored === null) return fallback
+  return stored === '1'
+}
+
+function readVolume(key: string, fallback: number): number {
+  const stored = localStorage.getItem(key)
+  if (stored === null) return fallback
+  const value = Number.parseFloat(stored)
+  if (!Number.isFinite(value)) return fallback
+  return Math.min(1, Math.max(0, value))
+}
 
 export class AudioManager {
-  private enabled = true
+  private musicEnabled = true
+  private sfxEnabled = true
+  private musicVolume = DEFAULT_MUSIC_VOLUME
+  private sfxVolume = DEFAULT_SFX_VOLUME
   private unlocked = false
-  private music: HTMLAudioElement | null = null
+  private music: HTMLAudioElement
   private readonly sfx = new Map<SfxId, HTMLAudioElement>()
 
   constructor() {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored !== null) this.enabled = stored === '1'
+    this.migrateLegacySoundSetting()
+    this.musicEnabled = readFlag(MUSIC_KEY, true)
+    this.sfxEnabled = readFlag(SFX_KEY, true)
+    this.musicVolume = readVolume(MUSIC_VOLUME_KEY, DEFAULT_MUSIC_VOLUME)
+    this.sfxVolume = readVolume(SFX_VOLUME_KEY, DEFAULT_SFX_VOLUME)
 
-    this.music = this.createAudio(AUDIO_FILES.music, { loop: true, volume: 0.32 })
-    this.sfx.set('pickup', this.createAudio(AUDIO_FILES.pickup, { volume: 0.55 }))
-    this.sfx.set('place', this.createAudio(AUDIO_FILES.place, { volume: 0.55 }))
-    this.sfx.set('drop', this.createAudio(AUDIO_FILES.drop, { volume: 0.5 }))
+    this.music = this.createAudio(AUDIO_FILES.music, { loop: true })
+    this.applyMusicVolume()
+    this.sfx.set('pickup', this.createAudio(AUDIO_FILES.pickup))
+    this.sfx.set('place', this.createAudio(AUDIO_FILES.place))
+    this.sfx.set('drop', this.createAudio(AUDIO_FILES.drop))
+    this.applySfxVolume()
+
+    this.music.addEventListener('canplaythrough', () => {
+      if (this.unlocked && this.musicEnabled) this.playMusic()
+    })
+  }
+
+  private migrateLegacySoundSetting(): void {
+    const legacy = localStorage.getItem(LEGACY_SOUND_KEY)
+    if (legacy === null || localStorage.getItem(MUSIC_KEY) !== null) return
+    const on = legacy === '1'
+    localStorage.setItem(MUSIC_KEY, on ? '1' : '0')
+    localStorage.setItem(SFX_KEY, on ? '1' : '0')
   }
 
   private createAudio(
     fileName: string,
-    options: { loop?: boolean; volume: number },
+    options: { loop?: boolean } = {},
   ): HTMLAudioElement {
     const audio = new Audio(audioUrl(fileName))
     audio.loop = options.loop ?? false
-    audio.volume = options.volume
     audio.preload = 'auto'
     return audio
   }
 
+  private applyMusicVolume(): void {
+    this.music.volume = this.musicVolume
+  }
+
+  private applySfxVolume(): void {
+    for (const clip of this.sfx.values()) {
+      clip.volume = this.sfxVolume
+    }
+  }
+
   /** Первый клик пользователя — разблокировка autoplay в браузере */
   unlock(): void {
-    if (this.unlocked) return
-    this.unlocked = true
-    if (this.enabled) this.playMusic()
+    if (!this.unlocked) this.unlocked = true
+    if (this.musicEnabled) this.playMusic()
   }
 
-  isEnabled(): boolean {
-    return this.enabled
+  isMusicEnabled(): boolean {
+    return this.musicEnabled
   }
 
-  toggle(): boolean {
-    this.enabled = !this.enabled
-    localStorage.setItem(STORAGE_KEY, this.enabled ? '1' : '0')
-    if (this.enabled) {
+  isSfxEnabled(): boolean {
+    return this.sfxEnabled
+  }
+
+  setMusicEnabled(enabled: boolean): void {
+    this.musicEnabled = enabled
+    localStorage.setItem(MUSIC_KEY, enabled ? '1' : '0')
+    if (enabled) {
       this.playMusic()
     } else {
       this.pauseMusic()
     }
-    return this.enabled
+  }
+
+  setSfxEnabled(enabled: boolean): void {
+    this.sfxEnabled = enabled
+    localStorage.setItem(SFX_KEY, enabled ? '1' : '0')
+  }
+
+  toggleMusic(): boolean {
+    this.setMusicEnabled(!this.musicEnabled)
+    return this.musicEnabled
+  }
+
+  toggleSfx(): boolean {
+    this.setSfxEnabled(!this.sfxEnabled)
+    return this.sfxEnabled
+  }
+
+  getMusicVolume(): number {
+    return this.musicVolume
+  }
+
+  getSfxVolume(): number {
+    return this.sfxVolume
+  }
+
+  setMusicVolume(volume: number): void {
+    this.musicVolume = Math.min(1, Math.max(0, volume))
+    localStorage.setItem(MUSIC_VOLUME_KEY, String(this.musicVolume))
+    this.applyMusicVolume()
+  }
+
+  setSfxVolume(volume: number): void {
+    this.sfxVolume = Math.min(1, Math.max(0, volume))
+    localStorage.setItem(SFX_VOLUME_KEY, String(this.sfxVolume))
+    this.applySfxVolume()
   }
 
   playMusic(): void {
-    if (!this.enabled || !this.music) return
+    if (!this.musicEnabled) return
     void this.music.play().catch(() => {})
   }
 
   pauseMusic(): void {
-    this.music?.pause()
+    this.music.pause()
   }
 
   playPickup(): void {
@@ -73,9 +160,10 @@ export class AudioManager {
   }
 
   private playSfx(id: SfxId): void {
-    if (!this.enabled) return
+    if (!this.sfxEnabled) return
     const clip = this.sfx.get(id)
     if (!clip) return
+    clip.volume = this.sfxVolume
     clip.currentTime = 0
     void clip.play().catch(() => {})
   }

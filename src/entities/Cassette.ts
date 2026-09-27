@@ -31,6 +31,7 @@ export class Cassette extends Interactable {
   private readonly spineMaterial: THREE.MeshLambertMaterial
   held = false
   placed = false
+  private seriesBoost = false
 
   constructor(genreId: number, title: string, seriesIndex: number, part: number) {
     super()
@@ -75,7 +76,25 @@ export class Cassette extends Interactable {
     this.mesh.userData.interactable = this
   }
 
-  protected applyHighlight(on: boolean): void {
+  setSeriesBoostHighlight(on: boolean): void {
+    if (this.seriesBoost === on) return
+    this.seriesBoost = on
+    this.syncEmissive()
+  }
+
+  protected applyHighlight(_on: boolean): void {
+    this.syncEmissive()
+  }
+
+  private syncEmissive(): void {
+    if (this.seriesBoost) {
+      this.coverMaterial.emissive.setHex(0x33ff66)
+      this.coverMaterial.emissiveIntensity = 0.85
+      this.spineMaterial.emissive.setHex(0x22cc55)
+      this.spineMaterial.emissiveIntensity = 0.7
+      return
+    }
+    const on = this.highlighted
     const emissive = on ? 0x443322 : 0x000000
     const intensity = on ? 0.35 : 0
     this.coverMaterial.emissive.setHex(emissive)

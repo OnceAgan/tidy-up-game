@@ -6,6 +6,7 @@ export class InputManager {
   private interactQueued = false
   private dropQueued = false
   private wheelStep = 0
+  private skill1Queued = false
   private rmbHeld = false
   private inputBlocked = false
   private readonly domElement: HTMLElement
@@ -77,6 +78,12 @@ export class InputManager {
     return step
   }
 
+  consumeSkill1(): boolean {
+    if (!this.skill1Queued) return false
+    this.skill1Queued = false
+    return true
+  }
+
   private onWheel(e: WheelEvent): void {
     if (!this.pointerLocked || this.inputBlocked) return
     if (e.deltaY > 0) this.wheelStep = 1
@@ -118,6 +125,9 @@ export class InputManager {
     this.keys.add(e.code)
     if (e.code === 'KeyE' && !e.repeat && this.pointerLocked && !this.inputBlocked) {
       this.dropQueued = true
+    }
+    if (e.code === 'Digit1' && !e.repeat && this.pointerLocked && !this.inputBlocked) {
+      this.skill1Queued = true
     }
   }
 
