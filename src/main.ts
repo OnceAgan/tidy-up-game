@@ -6,6 +6,8 @@ import { LevelManager } from './managers/LevelManager'
 import { InteractionManager } from './managers/InteractionManager'
 import { GameStateManager } from './managers/GameStateManager'
 import { GameTimer } from './managers/GameTimer'
+import { HorrorManager } from './managers/HorrorManager'
+import { HorrorScreen } from './ui/HorrorScreen'
 import { Crosshair } from './ui/Crosshair'
 import { WinScreen } from './ui/WinScreen'
 import { HoverLabel } from './ui/HoverLabel'
@@ -41,6 +43,21 @@ const gameTimer = new GameTimer()
 let endingPreview = false
 const level = new LevelManager()
 const player = new Player(engine.camera, input, level.bounds, level.colliders)
+const horrorScreen = new HorrorScreen(() => { resetRun(); startMenu.startGame() })
+const horror = new HorrorManager(engine.scene, level.root, engine.camera, player, audio, level.colliders, {
+  onCinematic: () => {
+    gameTimer.setRunning(false)
+    input.blockInput()
+    startMenu.suppress()
+    hideGameHud()
+    interaction.setHeldVisible(false)
+  },
+  onFade: opacity => horrorScreen.fade(opacity),
+  onFinished: () => {
+    document.exitPointerLock()
+    horrorScreen.show()
+  },
+})
 const raycast = new Raycast(engine.camera)
 const crosshair = new Crosshair()
 const hoverLabel = new HoverLabel()
@@ -56,6 +73,17 @@ const interaction = new InteractionManager(
   level.shelves,
   audio,
 )
+interaction.setSpecialInteractions(horror.targets, target => horror.tryInteract(target))
+
+function hideGameHud(): void {
+  controlsHint.hide()
+  progressHud.hide()
+  boostHud.hide()
+  crosshair.setVisible(false)
+  hoverLabel.hide()
+  heldList.update([])
+  achievementToast.clear()
+}
 
 const winScreen = new WinScreen(
   () => { resetRun(); startMenu.startGame() },
@@ -81,6 +109,8 @@ const gameState = new GameStateManager(() => {
 function resetRun(): void {
   gameTimer.reset()
   endingPreview = false
+  horror.reset()
+  horrorScreen.hide()
   interaction.reset()
   boostManager.reset()
   achievements.reset()
@@ -100,6 +130,8 @@ function resetRun(): void {
 }
 
 function prepareEndingPreview(): void {
+  horror.reset()
+  horrorScreen.hide()
   interaction.reset()
   boostManager.reset()
   achievements.reset()
@@ -123,7 +155,7 @@ interaction.setOnPlaced(() => {
   boostManager.checkShelvesAfterPlace(level.shelves)
   for (const notice of achievements.checkAfterPlace(level.shelves)) achievementToast.show(notice)
   progressHud.update(level.cassettes, level.shelves)
-  gameState.check(level.cassettes)
+  if (!horror.isActive) gameState.check(level.cassettes)
 })
 
 function refreshProgress(): void {
@@ -132,8 +164,8 @@ function refreshProgress(): void {
 
 document.addEventListener('pointerlockchange', () => {
   const inGame = document.pointerLockElement === engine.renderer.domElement
-  gameTimer.setRunning(inGame && !gameState.isWon)
-  if (inGame && !gameState.isWon) {
+  gameTimer.setRunning(inGame && !gameState.isWon && !horror.isCinematic)
+  if (inGame && !gameState.isWon && !horror.isCinematic) {
     progressHud.show()
     boostHud.show()
     refreshProgress()
@@ -152,7 +184,9 @@ engine.setUpdate((dt) => {
   if (gameState.isWon) return
   boostManager.update(dt)
   achievements.update(dt)
-  player.update(dt)
+  if (!horror.isCinematic) player.update(dt)
+  horror.update(dt, input.isPointerLocked || horror.isCinematic)
+  if (horror.isCinematic) return
   crosshair.setVisible(input.isPointerLocked)
 
   if (input.isPointerLocked) {
@@ -164,6 +198,10 @@ engine.setUpdate((dt) => {
     const hovered = interaction.hoveredTarget
     if (hovered?.kind === 'cassette') {
       hoverLabel.show(hovered as Cassette)
+    } else if (hovered?.kind === 'switch') {
+      hoverLabel.showText('Тумблер · ЛКМ — опустить')
+    } else if (hovered?.kind === 'sand') {
+      hoverLabel.showText('Горка песка · ЛКМ — потревожить')
     } else {
       hoverLabel.hide()
     }
