@@ -11,6 +11,7 @@ import {
   createWoodFloorTexture,
 } from '../env/textures'
 import { buildRoomDecor } from '../env/RoomDecor'
+import { buildHomeInterior, type HomeInterior } from '../env/homeInterior'
 import { buildRoomWalls } from '../env/roomWalls'
 import type { BoxCollider } from '../core/CollisionWorld'
 
@@ -24,6 +25,7 @@ const SHELF_INSET_D = 9.72
 const SHELF_GENRE_IDS = [0, 1, 2, 3] as const
 
 export class LevelManager {
+  private readonly homeInterior: HomeInterior
   readonly bounds: RoomBounds = {
     minX: -ROOM_WIDTH / 2,
     maxX: ROOM_WIDTH / 2,
@@ -40,11 +42,30 @@ export class LevelManager {
   constructor() {
     this.buildRoom()
     this.addLights()
-    const decorColliders = buildRoomDecor(this.root, ROOM_WIDTH, ROOM_DEPTH, WALL_HEIGHT)
-    this.colliders.push(...decorColliders)
+    const decorColliders = buildRoomDecor(this.root, ROOM_WIDTH, ROOM_DEPTH, WALL_HEIGHT, WALL_THICKNESS)
+    this.homeInterior = buildHomeInterior(this.root)
+    this.colliders.push(...decorColliders, ...this.homeInterior.colliders)
     this.buildShelves()
     this.buildColliders()
     this.spawnCassettes()
+  }
+
+  updateDecor(): void { this.homeInterior.update() }
+
+  resetCassettes(): void {
+    for (const slot of this.slots) slot.cassettes.length = 0
+    const spots = scatterSpots(this.cassettes.length)
+    const placed: PlacedCassette[] = []
+    this.cassettes.forEach((cassette, i) => {
+      cassette.held = cassette.placed = false
+      cassette.setHighlight(false)
+      cassette.setSeriesBoostHighlight(false)
+      cassette.mesh.renderOrder = 0
+      this.root.add(cassette.mesh)
+      placeCassetteOnFloor(cassette.mesh, spots[i].x, spots[i].z, spots[i].ry, placed)
+    })
+    settleFloorCassettes(this.cassettes.map(cassette => cassette.mesh))
+    for (const shelf of this.shelves) shelf.refreshCategoryLabel()
   }
 
   private buildRoom(): void {
@@ -162,4 +183,3 @@ function scatterSpots(count: number): Array<{ x: number; z: number; ry: number }
   }
   return spots
 }
-

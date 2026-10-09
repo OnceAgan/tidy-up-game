@@ -368,7 +368,8 @@ export class StartMenu {
     return btn
   }
 
-  private startGame(): void {
+  startGame(): void {
+    this.suppressed = false
     this.audio.unlock()
     this.canvas.style.visibility = 'visible'
     this.canvas.style.pointerEvents = 'auto'
@@ -391,6 +392,15 @@ export class StartMenu {
   suppress(): void {
     this.suppressed = true
     this.root.style.display = 'none'
+  }
+
+  returnToMain(): void {
+    this.suppressed = false
+    this.root.style.display = 'flex'
+    this.canvas.style.visibility = 'hidden'
+    this.canvas.style.pointerEvents = 'none'
+    this.showView('main')
+    this.audio.playMusic()
   }
 
   dispose(): void {

@@ -30,6 +30,15 @@ function addWallBox(
   if (w <= 0.001 || h <= 0.001) return
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material)
   mesh.position.set(x, y, z)
+  // World-space UVs prevent the motif stretching across differently sized wall pieces.
+  const position = mesh.geometry.attributes.position
+  const normal = mesh.geometry.attributes.normal
+  const uv = mesh.geometry.attributes.uv
+  for (let i = 0; i < position.count; i++) {
+    const u = Math.abs(normal.getX(i)) > 0.5 ? position.getZ(i) + z : position.getX(i) + x
+    uv.setXY(i, u / 1.2, (position.getY(i) + y) / 1.2)
+  }
+  uv.needsUpdate = true
   mesh.receiveShadow = true
   parent.add(mesh)
 }

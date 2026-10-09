@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { ShelfSlot } from './ShelfSlot'
-import { applyShelfWoodPbr } from '../env/textures'
+import { applyFurnitureWood, projectFurnitureUvs } from '../env/shelfMaterials'
 import { createCategoryLabelTexture } from '../env/coverArt'
 import { getGenre } from '../data/cassetteCatalog'
 import {
@@ -45,12 +45,12 @@ export class Shelf {
 
   private buildFrame(): void {
     const body = new THREE.MeshStandardMaterial({
-      color: 0xfff8f0,
+      color: 0xf8ead6,
       roughness: 0.56,
       metalness: 0.02,
     })
     const bodyVertical = new THREE.MeshStandardMaterial({
-      color: 0xfff8f0,
+      color: 0xf8ead6,
       roughness: 0.58,
       metalness: 0.02,
     })
@@ -65,17 +65,17 @@ export class Shelf {
       metalness: 0.02,
     })
     const trim = new THREE.MeshStandardMaterial({
-      color: 0xf0e0d0,
+      color: 0xe6c7a0,
       roughness: 0.4,
       metalness: 0.03,
     })
     const trimVertical = new THREE.MeshStandardMaterial({
-      color: 0xf0e0d0,
+      color: 0xe6c7a0,
       roughness: 0.42,
       metalness: 0.03,
     })
     const dark = new THREE.MeshStandardMaterial({
-      color: 0xd8c8b0,
+      color: 0xc6a27c,
       roughness: 0.64,
       metalness: 0.01,
     })
@@ -84,18 +84,19 @@ export class Shelf {
       roughness: 0.72,
       metalness: 0,
       emissive: 0x4a3828,
-      emissiveIntensity: 0.16,
+      emissiveIntensity: 0.04,
     })
 
-    applyShelfWoodPbr(body, 'horizontal')
-    applyShelfWoodPbr(bodyVertical, 'vertical')
-    applyShelfWoodPbr(light, 'horizontal')
-    applyShelfWoodPbr(lightVertical, 'vertical')
-    applyShelfWoodPbr(trim, 'horizontal')
-    applyShelfWoodPbr(trimVertical, 'vertical')
-    applyShelfWoodPbr(dark, 'horizontal')
-    applyShelfWoodPbr(back, 'flat')
+    applyFurnitureWood(body)
+    applyFurnitureWood(bodyVertical)
+    applyFurnitureWood(light)
+    applyFurnitureWood(lightVertical)
+    applyFurnitureWood(trim)
+    applyFurnitureWood(trimVertical)
+    applyFurnitureWood(dark)
+    applyFurnitureWood(back)
 
+    let boardIndex = 0
     const add = (
       w: number,
       h: number,
@@ -105,7 +106,10 @@ export class Shelf {
       z: number,
       mat: THREE.Material = body,
     ) => {
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat)
+      const geometry = new THREE.BoxGeometry(w, h, d)
+      const vertical = mat === bodyVertical || mat === lightVertical || mat === trimVertical
+      projectFurnitureUvs(geometry, vertical ? 'vertical' : mat === back ? 'flat' : 'horizontal', boardIndex++ * 0.173)
+      const mesh = new THREE.Mesh(geometry, mat)
       mesh.position.set(x, y, z)
       mesh.castShadow = false
       mesh.receiveShadow = true
@@ -123,7 +127,7 @@ export class Shelf {
       const x = sx * (halfW - SHELF_SIDE_W / 2)
       add(SHELF_SIDE_W, SHELF_TOTAL_H, SHELF_DEPTH, x, SHELF_TOTAL_H / 2, 0, bodyVertical)
       add(0.018, SHELF_TOTAL_H - 0.12, SHELF_DEPTH - 0.04, x + sx * 0.028, midY, 0.02, lightVertical)
-      add(0.035, SHELF_TOTAL_H - 0.08, 0.025, x + sx * 0.04, SHELF_TOTAL_H - 0.1, halfD - 0.01, trimVertical)
+      add(0.035, SHELF_TOTAL_H - 0.08, 0.025, x + sx * 0.04, midY, halfD - 0.01, trimVertical)
     }
 
     // Цоколь

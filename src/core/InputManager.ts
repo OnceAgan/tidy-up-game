@@ -7,6 +7,10 @@ export class InputManager {
   private dropQueued = false
   private wheelStep = 0
   private skill1Queued = false
+  private skill2Queued = false
+  private endingPreviewQueued = false
+  private secretDigits = 0
+  private lastSecretDigitAt = 0
   private rmbHeld = false
   private inputBlocked = false
   private readonly domElement: HTMLElement
@@ -41,6 +45,22 @@ export class InputManager {
   /** Заблокировать ввод (экран победы) */
   blockInput(): void {
     this.inputBlocked = true
+  }
+
+  reset(): void {
+    this.inputBlocked = false
+    this.keys.clear()
+    this.mouseDeltaX = this.mouseDeltaY = this.wheelStep = 0
+    this.interactQueued = this.dropQueued = this.skill1Queued = this.skill2Queued = false
+    this.endingPreviewQueued = false
+    this.secretDigits = 0
+    this.rmbHeld = false
+  }
+
+  consumeEndingPreview(): boolean {
+    const queued = this.endingPreviewQueued
+    this.endingPreviewQueued = false
+    return queued
   }
 
   isDown(code: string): boolean {
@@ -84,6 +104,12 @@ export class InputManager {
     return true
   }
 
+  consumeSkill2(): boolean {
+    const queued = this.skill2Queued
+    this.skill2Queued = false
+    return queued
+  }
+
   private onWheel(e: WheelEvent): void {
     if (!this.pointerLocked || this.inputBlocked) return
     if (e.deltaY > 0) this.wheelStep = 1
@@ -118,16 +144,35 @@ export class InputManager {
     this.pointerLocked = document.pointerLockElement === this.domElement
     if (!this.pointerLocked) {
       this.rmbHeld = false
+      this.skill1Queued = false
+      this.skill2Queued = false
+      this.secretDigits = 0
+      this.endingPreviewQueued = false
     }
   }
 
   private onKeyDown(e: KeyboardEvent): void {
     this.keys.add(e.code)
+    if (!e.repeat && this.pointerLocked && !this.inputBlocked) {
+      const now = performance.now()
+      if ((e.code === 'Digit9' || e.code === 'Numpad9') && e.key === '9') {
+        if (now - this.lastSecretDigitAt > 2000) this.secretDigits = 0
+        this.lastSecretDigitAt = now
+        this.secretDigits++
+        if (this.secretDigits === 9) {
+          this.endingPreviewQueued = true
+          this.secretDigits = 0
+        }
+      } else this.secretDigits = 0
+    }
     if (e.code === 'KeyE' && !e.repeat && this.pointerLocked && !this.inputBlocked) {
       this.dropQueued = true
     }
     if (e.code === 'Digit1' && !e.repeat && this.pointerLocked && !this.inputBlocked) {
       this.skill1Queued = true
+    }
+    if (e.code === 'Digit2' && !e.repeat && this.pointerLocked && !this.inputBlocked) {
+      this.skill2Queued = true
     }
   }
 

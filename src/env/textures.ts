@@ -119,54 +119,43 @@ function createProceduralWoodFloorTexture(): THREE.CanvasTexture {
 }
 
 /** Обои с мягким дамасским узором (или `public/textures/wallpaper.jpg`) */
-export function createWallpaperTexture(onLoaded?: (tex: THREE.Texture) => void): THREE.Texture {
-  return loadRoomTexture('wallpaper.jpg', createProceduralWallpaperTexture, {
-    repeat: [8, 4],
-    onLoaded,
-  })
-}
+let wallpaperTexture: THREE.CanvasTexture | undefined
 
-function createProceduralWallpaperTexture(): THREE.CanvasTexture {
+/** Quiet woven wallpaper with a small tone-on-tone botanical pattern. */
+export function createWallpaperTexture(_onLoaded?: (tex: THREE.Texture) => void): THREE.Texture {
+  if (wallpaperTexture) return wallpaperTexture
   const size = 512
   const canvas = makeCanvas(size)
   const ctx = canvas.getContext('2d')!
-
-  const bg = ctx.createLinearGradient(0, 0, 0, size)
-  bg.addColorStop(0, '#ebe2d2')
-  bg.addColorStop(1, '#ddd0bc')
-  ctx.fillStyle = bg
+  ctx.fillStyle = '#ddd9cc'
   ctx.fillRect(0, 0, size, size)
-
-  for (let x = 0; x < size; x += 64) {
-    ctx.fillStyle = 'rgba(200, 175, 145, 0.35)'
-    ctx.fillRect(x, 0, 32, size)
+  for (let i = 0; i < size; i += 2) {
+    ctx.fillStyle = i % 6 === 0 ? 'rgba(109,106,87,0.035)' : 'rgba(255,255,245,0.06)'
+    ctx.fillRect(i, 0, 1, size)
+    ctx.fillRect(0, i, size, 1)
   }
-
-  ctx.strokeStyle = 'rgba(150, 125, 100, 0.22)'
-  ctx.lineWidth = 1.5
-  for (let y = 0; y < size; y += 64) {
-    for (let x = 0; x < size; x += 64) {
+  ctx.strokeStyle = 'rgba(107,116,94,0.15)'
+  ctx.lineWidth = 1.2
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 4; col++) {
+      const x = col * 128 + (row % 2 ? 96 : 32)
+      const y = row * 128 + 64
       ctx.beginPath()
-      ctx.arc(x + 32, y + 32, 18, 0, Math.PI * 2)
-      ctx.stroke()
-      ctx.beginPath()
-      ctx.moveTo(x + 14, y + 32)
-      ctx.quadraticCurveTo(x + 32, y + 14, x + 50, y + 32)
-      ctx.quadraticCurveTo(x + 32, y + 50, x + 14, y + 32)
+      ctx.moveTo(x, y + 15)
+      ctx.quadraticCurveTo(x - 5, y, x + 3, y - 17)
+      for (const side of [-1, 1]) {
+        ctx.moveTo(x, y + 4)
+        ctx.quadraticCurveTo(x + side * 13, y + 2, x + side * 10, y - 8)
+        ctx.quadraticCurveTo(x + side * 2, y - 7, x, y + 4)
+      }
       ctx.stroke()
     }
   }
-
-  for (let i = 0; i < 600; i++) {
-    ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.06})`
-    ctx.fillRect(Math.random() * size, Math.random() * size, 1, 2)
-  }
-
-  return finishTex(new THREE.CanvasTexture(canvas), 8, 4)
+  wallpaperTexture = finishTex(new THREE.CanvasTexture(canvas), 1, 1)
+  return wallpaperTexture
 }
 
-/** Дерево для мебели / стеллажей — одна текстура на всю сцену */
-let furnitureWoodTexture: THREE.CanvasTexture | null = null
+/** Wood for furniture: one shared texture. */let furnitureWoodTexture: THREE.CanvasTexture | null = null
 
 export function createFurnitureWoodTexture(): THREE.CanvasTexture {
   if (furnitureWoodTexture) return furnitureWoodTexture
