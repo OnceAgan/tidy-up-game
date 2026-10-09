@@ -34,6 +34,7 @@ export class InteractionManager {
   private readonly slots: ShelfSlot[]
   private readonly shelves: Shelf[]
   private readonly audio: AudioManager | null
+  private onPicked: ((cassette: Cassette) => void) | null = null
   private onPlaced: (() => void) | null = null
 
   constructor(
@@ -70,6 +71,61 @@ export class InteractionManager {
 
   get hoveredTarget(): Interactable | null {
     return this.hovered
+  }
+
+  reset(): void {
+    this.tweens.removeAll()
+    this.busy = false
+    this.hovered?.setHighlight(false)
+    this.hovered = null
+    this.stack.length = 0
+    this.crosshair.setActive(false)
+  }
+
+  /** Called after resetting the level; leaves one genuine placement to finish. */
+  prepareEnding(): ShelfSlot | null {
+    const ordered = [...this.cassettes].sort((a, b) => a.genreId - b.genreId ||
+      a.seriesIndex - b.seriesIndex || a.part - b.part)
+    const last = ordered.pop()
+    if (!last) return null
+    for (const cassette of ordered) {
+      const slot = this.slots.find(candidate => candidate.accepts(cassette))
+      if (!slot) throw new Error('No valid slot for ending preview')
+      const pose = shelfLocalPose(cassette.part)
+      slot.addCassette(cassette)
+      cassette.placed = true
+      slot.mesh.add(cassette.mesh)
+      cassette.mesh.position.copy(pose.position)
+      cassette.mesh.rotation.copy(pose.rotation)
+      cassette.mesh.renderOrder = 10
+    }
+    for (const shelf of this.shelves) shelf.refreshCategoryLabel()
+    const lastSlot = this.slots.find(slot => slot.accepts(last)) ?? null
+    this.pickUp(last)
+    return lastSlot
+  }
+
+  /** Collect the unplaced parts of the top cassette's series as one animated stack. */
+  tryCollectSeries(): 'collected' | 'busy' | 'empty' | 'full' | 'complete' {
+    if (this.busy) return 'busy'
+    const top = this.topHeld
+    if (!top) return 'empty'
+    const targets = this.cassettes.filter(c => !c.held && !c.placed &&
+      c.genreId === top.genreId && c.seriesIndex === top.seriesIndex && c.title === top.title)
+    if (targets.length === 0) return 'complete'
+    if (this.stack.length + targets.length > MAX_STACK) return 'full'
+    this.busy = true
+    targets.sort((a, b) => b.part - a.part)
+    for (const cassette of targets) {
+      cassette.held = true
+      this.onPicked?.(cassette)
+      cassette.setHighlight(false)
+      this.holdRoot.attach(cassette.mesh)
+      this.stack.push(cassette)
+    }
+    this.audio?.playPickup()
+    this.relayoutStack(true, () => { this.busy = false })
+    return 'collected'
   }
 
   private pickMeshes: THREE.Object3D[] = []
@@ -159,6 +215,7 @@ export class InteractionManager {
   private pickUp(cassette: Cassette): void {
     this.busy = true
     cassette.held = true
+    this.onPicked?.(cassette)
     cassette.setHighlight(false)
     this.stack.push(cassette)
     this.audio?.playPickup()
@@ -340,6 +397,10 @@ export class InteractionManager {
     })
 
     if (!animate) onComplete?.()
+  }
+
+  setOnPicked(fn: (cassette: Cassette) => void): void {
+    this.onPicked = fn
   }
 
   setOnPlaced(fn: () => void): void {

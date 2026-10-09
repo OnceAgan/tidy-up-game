@@ -1,7 +1,10 @@
 import * as THREE from 'three'
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { createBoostBoardTexture } from './coverArt'
-import { createFurnitureWoodTexture, createWallPictureTexture } from './textures'
+import { createWallPictureTexture } from './textures'
 import { addWindows } from './windowAssembly'
+import { addChandelierFixture } from './chandelier'
+import { addCeilingArchitecture } from './ceilingArchitecture'
 import type { BoxCollider } from '../core/CollisionWorld'
 
 export type DecorColliders = BoxCollider[]
@@ -12,15 +15,10 @@ export function buildRoomDecor(
   roomWidth: number,
   roomDepth: number,
   wallHeight: number,
+  wallThickness = 0.2,
 ): DecorColliders {
   const halfW = roomWidth / 2
   const halfD = roomDepth / 2
-  const woodTex = createFurnitureWoodTexture()
-  const woodMat = new THREE.MeshStandardMaterial({
-    map: woodTex,
-    color: 0xffffff,
-    roughness: 0.72,
-  })
   const colliders: DecorColliders = []
 
   addWallPictures(parent, halfW, halfD, wallHeight)
@@ -31,7 +29,8 @@ export function buildRoomDecor(
   ])
   addRug(parent)
   addCeilingLights(parent, wallHeight)
-  addBaseboards(parent, halfW, halfD, woodMat)
+  addCeilingArchitecture(parent, roomWidth, roomDepth, wallHeight)
+  addBaseboards(parent, halfW - wallThickness / 2, halfD - wallThickness / 2)
 
   return colliders
 }
@@ -75,7 +74,7 @@ function addBoostBoard(parent: THREE.Group, halfW: number, halfD: number): void 
   const boardW = 0.95
   const boardH = 1.2
   const group = new THREE.Group()
-  group.position.set(-halfW + 0.11, 1.75, 0.2)
+  group.position.set(-halfW + 0.11, 1.65, -2.25)
   group.rotation.y = Math.PI / 2
 
   const frame = new THREE.Mesh(new THREE.BoxGeometry(boardW + 0.08, boardH + 0.08, 0.05), frameMat)
@@ -125,66 +124,27 @@ function addCeilingLights(parent: THREE.Group, wallHeight: number): void {
   }
 }
 
-function addChandelierFixture(
-  parent: THREE.Group,
-  wallHeight: number,
-  x: number,
-  z: number,
-): void {
-  const group = new THREE.Group()
-  group.position.set(x, wallHeight - 0.05, z)
-
-  const metal = new THREE.MeshStandardMaterial({ color: 0xb8a078, metalness: 0.65, roughness: 0.35 })
-  const chain = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.35, 8), metal)
-  chain.position.y = -0.2
-  group.add(chain)
-
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.18, 0.15, 16), metal)
-  body.position.y = -0.42
-  group.add(body)
-
-  const shadeMat = new THREE.MeshStandardMaterial({
-    color: 0xf5ead0,
-    emissive: 0xffe6b0,
-    emissiveIntensity: 0.4,
-    roughness: 0.6,
-  })
-  for (let i = 0; i < 4; i++) {
-    const a = (i / 4) * Math.PI * 2
-    const shade = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.09, 0.1, 12), shadeMat)
-    shade.position.set(Math.cos(a) * 0.28, -0.55, Math.sin(a) * 0.28)
-    group.add(shade)
-  }
-
-  const light = new THREE.PointLight(0xffe0b0, 0.9, 20, 1.7)
-  light.position.y = -0.55
-  if (x === 0 && z === 0) {
-    light.castShadow = true
-    light.shadow.mapSize.set(1024, 1024)
-  }
-  group.add(light)
-
-  parent.add(group)
-}
-
 function addBaseboards(
   parent: THREE.Group,
   halfW: number,
   halfD: number,
-  woodMat: THREE.Material,
 ): void {
-  const h = 0.12
-  const t = 0.04
-  const boards = [
-    { w: halfW * 2, d: t, x: 0, z: -halfD + t / 2 },
-    { w: halfW * 2, d: t, x: 0, z: halfD - t / 2 },
-    { w: t, d: halfD * 2, x: -halfW + t / 2, z: 0 },
-    { w: t, d: halfD * 2, x: halfW - t / 2, z: 0 },
-  ]
-  for (const b of boards) {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(b.w, h, b.d), woodMat)
-    mesh.position.set(b.x, h / 2, b.z)
-    mesh.receiveShadow = true
-    parent.add(mesh)
+  const pieces: THREE.BufferGeometry[] = []
+  // Painted timber profile: toe, tall flat face, stepped cap and narrow top bead.
+  for (const [y, h, depth] of [[0.018, 0.036, 0.07], [0.093, 0.114, 0.046],
+    [0.154, 0.014, 0.058], [0.168, 0.014, 0.036]]) {
+    const boards = [
+      { w: halfW * 2, d: depth, x: 0, z: -halfD + depth / 2 },
+      { w: halfW * 2, d: depth, x: 0, z: halfD - depth / 2 },
+      { w: depth, d: halfD * 2 - depth * 2, x: -halfW + depth / 2, z: 0 },
+      { w: depth, d: halfD * 2 - depth * 2, x: halfW - depth / 2, z: 0 },
+    ]
+    for (const b of boards) pieces.push(new THREE.BoxGeometry(b.w, h, b.d).translate(b.x, y, b.z))
   }
+  const geometry = mergeGeometries(pieces)!
+  for (const piece of pieces) piece.dispose()
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xddd1bb, roughness: 0.6 }))
+  mesh.name = 'perimeter-baseboards'
+  mesh.receiveShadow = true
+  parent.add(mesh)
 }

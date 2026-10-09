@@ -12,6 +12,8 @@ export class GameStateManager {
     return this.won
   }
 
+  reset(): void { this.won = false }
+
   check(cassettes: Cassette[]): void {
     if (this.won) return
     if (cassettes.length === 0) return

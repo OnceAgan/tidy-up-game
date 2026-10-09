@@ -377,17 +377,21 @@ export function createBoostBoardTexture(): THREE.CanvasTexture {
   ctx.font = '22px Arial, sans-serif'
   ctx.fillStyle = '#333'
   const body =
-    'Заполни полку одной категории целиком — навык готов. Возьми любую кассету серии и нажми 1: на полу подсветятся остальные части этой серии на 15 сек.'
-  const lines = wrapLines(ctx, body, canvas.width - 96, 8)
+    'Заполни ячейку — получи заряд на 15 сек. Возьми кассету и нажми 1. Пока время идёт, можно сменить серию кнопкой 1.'
+  const lines = wrapLines(ctx, body, canvas.width - 96, 6)
   let y = 175
   for (const line of lines) {
     ctx.fillText(line, 48, y)
-    y += 30
+    y += 27
   }
 
-  ctx.font = 'italic 20px Georgia, serif'
-  ctx.fillStyle = '#666'
-  ctx.fillText('Следующие навыки — скоро', 48, canvas.height - 56)
+  ctx.font = 'bold 26px Arial, sans-serif'
+  ctx.fillStyle = '#745322'
+  ctx.fillText('2 · Сбор серии', 48, 370)
+  ctx.font = '22px Arial, sans-serif'
+  ctx.fillStyle = '#333'
+  const collection = 'Заполни стеллаж — получи заряд на 15 сек. Возьми кассету и нажми 2: свободные кассеты её серии окажутся в руках. Повторяй с другими сериями, пока время идёт. В руках — до 5 кассет.'
+  wrapLines(ctx, collection, canvas.width - 96, 8).forEach((line, i) => ctx.fillText(line, 48, 405 + i * 26))
 
   const tex = new THREE.CanvasTexture(canvas)
   tex.colorSpace = THREE.SRGBColorSpace

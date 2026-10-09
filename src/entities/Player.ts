@@ -102,6 +102,24 @@ export class Player {
     this.yawObject.position.set(resolved.x, EYE_HEIGHT, resolved.z)
   }
 
+  reset(): void {
+    this.yawObject.position.set(0, EYE_HEIGHT, 0.5)
+    this.yawObject.rotation.y = 0
+    this.pitch = 0
+    this.pitchObject.rotation.x = 0
+    this.currentFov = this.camera.fov = BASE_FOV
+    this.camera.updateProjectionMatrix()
+  }
+
+  faceSlot(slotPosition: THREE.Vector3, shelfYaw: number): void {
+    const outward = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), shelfYaw)
+    this.yawObject.position.copy(slotPosition).addScaledVector(outward, 1.5)
+    this.yawObject.position.y = EYE_HEIGHT
+    this.yawObject.rotation.y = shelfYaw
+    this.pitch = Math.atan2(slotPosition.y - EYE_HEIGHT, 1.5)
+    this.pitchObject.rotation.x = this.pitch
+  }
+
   get position(): THREE.Vector3 {
     return this.yawObject.position
   }

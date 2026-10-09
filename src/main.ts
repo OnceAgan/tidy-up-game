@@ -5,6 +5,7 @@ import { Player } from './entities/Player'
 import { LevelManager } from './managers/LevelManager'
 import { InteractionManager } from './managers/InteractionManager'
 import { GameStateManager } from './managers/GameStateManager'
+import { GameTimer } from './managers/GameTimer'
 import { Crosshair } from './ui/Crosshair'
 import { WinScreen } from './ui/WinScreen'
 import { HoverLabel } from './ui/HoverLabel'
@@ -15,6 +16,8 @@ import { ProgressHud } from './ui/ProgressHud'
 import { ControlsHint } from './ui/ControlsHint'
 import { BoostHud } from './ui/BoostHud'
 import { BoostManager } from './managers/BoostManager'
+import { AchievementManager } from './managers/AchievementManager'
+import { AchievementToast } from './ui/AchievementToast'
 import { AudioManager } from './audio/AudioManager'
 import type { Cassette } from './entities/Cassette'
 
@@ -32,6 +35,10 @@ const progressHud = new ProgressHud()
 const controlsHint = new ControlsHint()
 const boostHud = new BoostHud()
 const boostManager = new BoostManager(engine.scene)
+const achievements = new AchievementManager()
+const achievementToast = new AchievementToast()
+const gameTimer = new GameTimer()
+let endingPreview = false
 const level = new LevelManager()
 const player = new Player(engine.camera, input, level.bounds, level.colliders)
 const raycast = new Raycast(engine.camera)
@@ -50,14 +57,16 @@ const interaction = new InteractionManager(
   audio,
 )
 
-const winScreen = new WinScreen(() => {
-  window.location.reload()
-})
+const winScreen = new WinScreen(
+  () => { resetRun(); startMenu.startGame() },
+  () => resetRun(),
+)
 
 const gameState = new GameStateManager(() => {
-  document.exitPointerLock()
+  gameTimer.setRunning(false)
   input.blockInput()
   startMenu.suppress()
+  document.exitPointerLock()
   controlsHint.hide()
   progressHud.hide()
   boostHud.hide()
@@ -65,11 +74,54 @@ const gameState = new GameStateManager(() => {
   crosshair.setVisible(false)
   hoverLabel.hide()
   heldList.update([])
-  winScreen.show()
+  achievementToast.clear()
+  winScreen.show(gameTimer.seconds, endingPreview)
 })
+
+function resetRun(): void {
+  gameTimer.reset()
+  endingPreview = false
+  interaction.reset()
+  boostManager.reset()
+  achievements.reset()
+  achievementToast.clear()
+  level.resetCassettes()
+  player.reset()
+  input.reset()
+  gameState.reset()
+  winScreen.hide()
+  controlsHint.reset()
+  hoverLabel.hide()
+  heldList.update([])
+  progressHud.hide()
+  boostHud.hide()
+  refreshProgress()
+  startMenu.returnToMain()
+}
+
+function prepareEndingPreview(): void {
+  interaction.reset()
+  boostManager.reset()
+  achievements.reset()
+  achievementToast.clear()
+  level.resetCassettes()
+  const slot = interaction.prepareEnding()
+  if (!slot) return
+  endingPreview = true
+  const position = slot.mesh.getWorldPosition(player.position.clone())
+  player.faceSlot(position, slot.shelf.root.rotation.y)
+  boostManager.checkShelvesAfterPlace(level.shelves)
+  // Award the completed shelves without queuing a wall of test-mode notifications.
+  achievements.checkAfterPlace(level.shelves)
+  refreshProgress()
+  achievementToast.hint('Осталась одна кассета — помести её в ячейку перед собой')
+}
+
+interaction.setOnPicked(cassette => boostManager.onCassettePicked(cassette))
 
 interaction.setOnPlaced(() => {
   boostManager.checkShelvesAfterPlace(level.shelves)
+  for (const notice of achievements.checkAfterPlace(level.shelves)) achievementToast.show(notice)
   progressHud.update(level.cassettes, level.shelves)
   gameState.check(level.cassettes)
 })
@@ -80,6 +132,7 @@ function refreshProgress(): void {
 
 document.addEventListener('pointerlockchange', () => {
   const inGame = document.pointerLockElement === engine.renderer.domElement
+  gameTimer.setRunning(inGame && !gameState.isWon)
   if (inGame && !gameState.isWon) {
     progressHud.show()
     boostHud.show()
@@ -95,14 +148,17 @@ engine.scene.add(player.yawObject)
 
 engine.setUpdate((dt) => {
   perfPanel.update(dt, engine.scene, engine.renderer, level.cassettes.length, level.shelves)
+  level.updateDecor()
   if (gameState.isWon) return
   boostManager.update(dt)
+  achievements.update(dt)
   player.update(dt)
   crosshair.setVisible(input.isPointerLocked)
 
   if (input.isPointerLocked) {
     progressHud.update(level.cassettes, level.shelves)
     interaction.update()
+    if (input.consumeEndingPreview()) prepareEndingPreview()
     heldList.update(interaction.heldStack)
 
     const hovered = interaction.hoveredTarget
@@ -129,7 +185,20 @@ engine.setUpdate((dt) => {
       boostManager.tryActivateSeriesHighlight(interaction.topHeld, level.cassettes)
     }
 
-    boostHud.update(boostManager.getHudState(), interaction.topHeld !== null)
+    if (input.consumeSkill2()) {
+      const state = achievements.getCollectionState()
+      if (!state.unlocked) achievementToast.hint('Заполни стеллаж, чтобы открыть навык 2')
+      else if (state.charges === 0 && state.secondsLeft === 0) achievementToast.hint('Для нового заряда заполни ещё один стеллаж')
+      else achievements.tryCollect(() => {
+        const result = interaction.tryCollectSeries()
+        if (result === 'empty') achievementToast.hint('Возьми кассету нужной серии и нажми 2')
+        if (result === 'full') achievementToast.hint('В руках помещается 5 кассет — освободи место от других серий')
+        if (result === 'complete') achievementToast.hint('Все доступные кассеты этой серии уже собраны')
+        return result === 'collected'
+      })
+    }
+
+    boostHud.update(boostManager.getHudState(), interaction.topHeld !== null, achievements.getCollectionState())
   } else {
     hoverLabel.hide()
     heldList.update([])
