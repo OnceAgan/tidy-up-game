@@ -4,6 +4,7 @@ import { getLinenTexture } from './windowDetails'
 /** Five shaded lamps on curved brass arms, with one light per fixture. */
 export function addChandelierFixture(parent: THREE.Group, wallHeight: number, x: number, z: number): void {
   const group = new THREE.Group()
+  group.name = 'chandelier'
   group.position.set(x, wallHeight - 0.05, z)
   const brass = new THREE.MeshStandardMaterial({ color: 0x9b7946, metalness: 0.72, roughness: 0.34 })
   const darkBrass = new THREE.MeshStandardMaterial({ color: 0x655039, metalness: 0.65, roughness: 0.48 })
@@ -62,6 +63,7 @@ export function addChandelierFixture(parent: THREE.Group, wallHeight: number, x:
     group.add(arm)
   }
   const light = new THREE.PointLight(0xffe0b0, 0.9, 20, 1.7)
+  light.userData.chandelier = true
   light.position.y = -0.55
   if (x === 0 && z === 0) {
     light.castShadow = true

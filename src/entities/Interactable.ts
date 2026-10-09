@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 
-export type InteractableKind = 'cassette' | 'slot'
+export type InteractableKind = 'cassette' | 'slot' | 'switch' | 'sand'
 
 export abstract class Interactable {
   abstract readonly kind: InteractableKind

@@ -29,6 +29,9 @@ export class AudioManager {
   private musicVolume = DEFAULT_MUSIC_VOLUME
   private sfxVolume = DEFAULT_SFX_VOLUME
   private unlocked = false
+  private musicSuspended = false
+  private effectContext: AudioContext | null = null
+  private effectGain: GainNode | null = null
   private music: HTMLAudioElement
   private readonly sfx = new Map<SfxId, HTMLAudioElement>()
 
@@ -77,11 +80,19 @@ export class AudioManager {
     for (const clip of this.sfx.values()) {
       clip.volume = this.sfxVolume
     }
+    if (this.effectGain) this.effectGain.gain.value = this.sfxEnabled ? this.sfxVolume : 0
   }
 
   /** Первый клик пользователя — разблокировка autoplay в браузере */
   unlock(): void {
     if (!this.unlocked) this.unlocked = true
+    if (!this.effectContext && typeof AudioContext !== 'undefined') {
+      this.effectContext = new AudioContext()
+      this.effectGain = this.effectContext.createGain()
+      this.effectGain.connect(this.effectContext.destination)
+      this.applySfxVolume()
+    }
+    if (this.effectContext?.state === 'suspended') void this.effectContext.resume().catch(() => {})
     if (this.musicEnabled) this.playMusic()
   }
 
@@ -106,6 +117,7 @@ export class AudioManager {
   setSfxEnabled(enabled: boolean): void {
     this.sfxEnabled = enabled
     localStorage.setItem(SFX_KEY, enabled ? '1' : '0')
+    this.applySfxVolume()
   }
 
   toggleMusic(): boolean {
@@ -139,12 +151,43 @@ export class AudioManager {
   }
 
   playMusic(): void {
-    if (!this.musicEnabled) return
+    if (!this.musicEnabled || this.musicSuspended) return
     void this.music.play().catch(() => {})
   }
 
   pauseMusic(): void {
     this.music.pause()
+  }
+
+  suspendMusic(suspended: boolean): void {
+    this.musicSuspended = suspended
+    if (suspended) this.pauseMusic()
+    else if (this.unlocked) this.playMusic()
+  }
+
+  playScrape(): void { this.playNoise(0.34, 1500, 0.22) }
+  playSpiderScare(): void { this.playNoise(0.55, 430, 0.3) }
+
+  private playNoise(duration: number, frequency: number, level: number): void {
+    const ctx = this.effectContext
+    if (!this.unlocked || !this.sfxEnabled || !ctx || !this.effectGain) return
+    const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * duration), ctx.sampleRate)
+    const data = buffer.getChannelData(0)
+    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (0.65 + 0.35 * Math.sin(i / ctx.sampleRate * 210))
+    const source = ctx.createBufferSource()
+    source.buffer = buffer
+    const filter = ctx.createBiquadFilter()
+    filter.type = 'bandpass'
+    filter.frequency.setValueAtTime(frequency, ctx.currentTime)
+    filter.frequency.exponentialRampToValueAtTime(frequency * 0.45, ctx.currentTime + duration)
+    filter.Q.value = 1.8
+    const envelope = ctx.createGain()
+    envelope.gain.setValueAtTime(0, ctx.currentTime)
+    envelope.gain.linearRampToValueAtTime(level, ctx.currentTime + 0.018)
+    envelope.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration)
+    source.connect(filter).connect(envelope).connect(this.effectGain)
+    source.onended = () => { source.disconnect(); filter.disconnect(); envelope.disconnect() }
+    source.start()
   }
 
   playPickup(): void {

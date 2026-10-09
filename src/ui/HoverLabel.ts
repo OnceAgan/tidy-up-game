@@ -39,4 +39,9 @@ export class HoverLabel {
   hide(): void {
     this.el.style.display = 'none'
   }
+
+  showText(text: string): void {
+    this.el.textContent = text
+    this.el.style.display = 'block'
+  }
 }

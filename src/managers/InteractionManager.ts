@@ -36,6 +36,13 @@ export class InteractionManager {
   private readonly audio: AudioManager | null
   private onPicked: ((cassette: Cassette) => void) | null = null
   private onPlaced: (() => void) | null = null
+  private specialTargets: readonly Interactable[] = []
+  private onSpecialInteract: ((target: Interactable) => void) | null = null
+
+  setSpecialInteractions(targets: readonly Interactable[], onInteract: (target: Interactable) => void): void {
+    this.specialTargets = targets
+    this.onSpecialInteract = onInteract
+  }
 
   constructor(
     camera: THREE.Camera,
@@ -74,6 +81,7 @@ export class InteractionManager {
   }
 
   reset(): void {
+    this.holdRoot.visible = true
     this.tweens.removeAll()
     this.busy = false
     this.hovered?.setHighlight(false)
@@ -81,6 +89,8 @@ export class InteractionManager {
     this.stack.length = 0
     this.crosshair.setActive(false)
   }
+
+  setHeldVisible(visible: boolean): void { this.holdRoot.visible = visible }
 
   /** Called after resetting the level; leaves one genuine placement to finish. */
   prepareEnding(): ShelfSlot | null {
@@ -163,7 +173,9 @@ export class InteractionManager {
       if (top && slot.accepts(top)) {
         this.placeInSlot(slot, top)
       }
+      return
     }
+    this.onSpecialInteract?.(target)
   }
 
   /** ПКМ: верхняя кассета обратно на пол */
@@ -190,6 +202,7 @@ export class InteractionManager {
 
   private resolveTarget(): Interactable | null {
     this.pickTargets.length = 0
+    this.pickTargets.push(...this.specialTargets)
 
     if (this.stack.length < MAX_STACK) {
       for (const c of this.cassettes) {
