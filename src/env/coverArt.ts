@@ -431,12 +431,6 @@ function makeTexture(canvas: HTMLCanvasElement): THREE.CanvasTexture {
   return tex
 }
 
-function shortSpineTitle(title: string, maxLen = 20): string {
-  const upper = title.toUpperCase()
-  if (upper.length <= maxLen) return upper
-  return `${upper.slice(0, maxLen - 1)}…`
-}
-
 /** Торец кассеты — жанр, название, номер части (видно в стопке) */
 const spineTextureCache = new Map<string, THREE.CanvasTexture>()
 
@@ -473,16 +467,25 @@ export function createSpineTexture(
   ctx.textBaseline = 'middle'
   ctx.fillText(genre.tag, w / 2, 28)
 
-  ctx.fillStyle = '#d4ff70'
-  ctx.font = 'bold 28px Arial, Helvetica, sans-serif'
-  const spineTitle = shortSpineTitle(title)
-  const titleLines = wrapLines(ctx, spineTitle, w - 16, 4)
+  ctx.fillStyle = '#f5edd9'
+  ctx.fillRect(10, 66, w - 20, 300)
+  ctx.save()
+  ctx.translate(w / 2, 216)
+  ctx.rotate(-Math.PI / 2)
+  // Compensate for the narrow physical spine's UV aspect ratio.
+  ctx.scale(1 / 3, 1)
+  ctx.fillStyle = '#231d18'
+  ctx.font = 'bold 60px Arial, Helvetica, sans-serif'
+  const titleLines = wrapLines(ctx, title.toUpperCase(), 822, 10)
+  const fontSize = Math.min(60, 136 / titleLines.length)
+  ctx.font = `bold ${fontSize}px Arial, Helvetica, sans-serif`
   titleLines.forEach((line, i) => {
-    ctx.fillText(line, w / 2, 100 + i * 28)
+    ctx.fillText(line, 0, (i - (titleLines.length - 1) / 2) * fontSize, 822)
   })
+  ctx.restore()
 
   ctx.fillStyle = '#ffffff'
-  ctx.font = 'bold 168px Arial Black, Arial, sans-serif'
+  ctx.font = 'bold 108px Arial Black, Arial, sans-serif'
   ctx.textAlign = 'right'
   ctx.textBaseline = 'bottom'
   ctx.fillText(String(part), w - 6, h - 12)
@@ -490,6 +493,28 @@ export function createSpineTexture(
   const tex = makeTexture(canvas)
   spineTextureCache.set(key, tex)
   return tex
+}
+
+/** Полное название на горизонтальной карточке ячейки. */
+export function createSeriesLabelTexture(title: string): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas')
+  canvas.width = 768
+  canvas.height = 144
+  const ctx = canvas.getContext('2d')!
+  ctx.fillStyle = '#f5edd9'
+  ctx.fillRect(0, 0, 768, 144)
+  ctx.strokeStyle = '#aa8960'
+  ctx.lineWidth = 6
+  ctx.strokeRect(3, 3, 762, 138)
+  ctx.fillStyle = '#30271e'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.font = 'bold 80px Arial, sans-serif'
+  const lines = wrapLines(ctx, title, 720, 10)
+  const size = Math.min(80, 120 / lines.length)
+  ctx.font = `bold ${size}px Arial, sans-serif`
+  lines.forEach((line, i) => ctx.fillText(line, 384, 72 + (i - (lines.length - 1) / 2) * size, 720))
+  return makeTexture(canvas)
 }
 
 /** Задняя сторона кассеты */

@@ -53,7 +53,7 @@ export class LevelManager {
   updateDecor(): void { this.homeInterior.update() }
 
   resetCassettes(): void {
-    for (const slot of this.slots) slot.cassettes.length = 0
+    for (const slot of this.slots) slot.reset()
     const spots = scatterSpots(this.cassettes.length)
     const placed: PlacedCassette[] = []
     this.cassettes.forEach((cassette, i) => {

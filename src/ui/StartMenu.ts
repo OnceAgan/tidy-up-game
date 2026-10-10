@@ -8,7 +8,7 @@ type MenuItem = {
   onClick?: () => void
 }
 
-type MenuView = 'main' | 'settings'
+type MenuView = 'main' | 'settings' | 'welcome'
 
 export class StartMenu {
   private readonly root: HTMLDivElement
@@ -20,6 +20,12 @@ export class StartMenu {
   private musicToggleBtn: HTMLButtonElement | null = null
   private sfxToggleBtn: HTMLButtonElement | null = null
   private suppressed = false
+  private runStarted = false
+  private continueBtn!: HTMLButtonElement
+  private readonly welcomeView: HTMLDivElement
+  private onNewGame: (() => void) | null = null
+
+  setOnNewGame(fn: () => void): void { this.onNewGame = fn }
 
   constructor(canvas: HTMLElement, audio: AudioManager) {
     this.canvas = canvas
@@ -44,7 +50,8 @@ export class StartMenu {
     this.panel = this.createPanelShell()
     this.mainView = this.createMainView()
     this.settingsView = this.createSettingsView()
-    this.panel.append(this.mainView, this.settingsView)
+    this.welcomeView = this.createWelcomeView()
+    this.panel.append(this.mainView, this.settingsView, this.welcomeView)
 
     this.root.append(this.panel)
     document.body.appendChild(this.root)
@@ -108,10 +115,43 @@ export class StartMenu {
     ]
 
     view.append(title, subtitle)
+    this.continueBtn = this.createButton({ label: 'Продолжить', enabled: true, onClick: () => this.resumeGame() })
+    this.continueBtn.style.display = 'none'
+    view.appendChild(this.continueBtn)
     for (const item of items) {
       view.appendChild(this.createButton(item))
     }
 
+    return view
+  }
+
+  private createWelcomeView(): HTMLDivElement {
+    const view = document.createElement('div')
+    view.id = 'welcome-screen'
+    view.setAttribute('role', 'dialog')
+    view.setAttribute('aria-labelledby', 'welcome-title')
+    Object.assign(view.style, { display: 'none', flexDirection: 'column', gap: '14px',
+      color: '#f2ebe0', font: '16px/1.6 Arial, sans-serif' })
+    const eyebrow = document.createElement('div')
+    eyebrow.textContent = 'ДОБРО ПОЖАЛОВАТЬ В ВИДЕОТЕКУ'
+    Object.assign(eyebrow.style, { color: '#d8bc83', font: '12px Arial, sans-serif', letterSpacing: '2px' })
+    const title = document.createElement('h2')
+    title.id = 'welcome-title'
+    title.textContent = 'Один кот. Сто двадцать кассет.'
+    Object.assign(title.style, { margin: '0', font: '32px/1.2 Georgia, serif' })
+    const story = document.createElement('p')
+    story.textContent = 'Кот решил стать кинокритиком и сбросил всю коллекцию на пол. Рецензии мы так и не нашли. Зато теперь точно знаем: гравитация работает.'
+    story.style.margin = '0'
+    const goal = document.createElement('p')
+    goal.textContent = 'Верни все 120 кассет на стеллажи по жанрам. Каждая ячейка — одна серия из пяти частей: от 1 до 5. Первой кассетой ты выбираешь, какая серия будет стоять в ячейке.'
+    goal.style.margin = '0'
+    const controls = document.createElement('div')
+    controls.textContent = 'WASD — движение · Shift — быстрее · ЛКМ — взять или поставить · E — положить на пол · Колёсико — выбрать кассету в руках · ПКМ — приблизить · Esc — пауза. В руках помещается до пяти кассет. Заполняй ячейки и стеллажи, чтобы получать достижения и навыки 1 и 2.'
+    Object.assign(controls.style, { padding: '14px', background: '#ffffff0c', border: '1px solid #d8bc8340',
+      borderRadius: '8px', fontSize: '14px', color: '#d9d1c4' })
+    view.append(eyebrow, title, story, goal, controls,
+      this.createButton({ label: 'Начать игру', enabled: true, onClick: () => this.resumeGame() }),
+      this.createButton({ label: 'Главное меню', enabled: true, onClick: () => this.returnToMain() }))
     return view
   }
 
@@ -333,6 +373,11 @@ export class StartMenu {
     this.audio.unlock()
     this.mainView.style.display = view === 'main' ? 'flex' : 'none'
     this.settingsView.style.display = view === 'settings' ? 'flex' : 'none'
+    this.welcomeView.style.display = view === 'welcome' ? 'flex' : 'none'
+    this.panel.style.maxWidth = view === 'welcome' ? '560px' : '300px'
+    this.panel.style.maxHeight = 'calc(100vh - 40px)'
+    this.panel.style.overflowY = 'auto'
+    this.continueBtn.style.display = this.runStarted ? 'block' : 'none'
     if (view === 'settings') this.refreshSettingsToggles()
   }
 
@@ -369,6 +414,16 @@ export class StartMenu {
   }
 
   startGame(): void {
+    this.onNewGame?.()
+    this.suppressed = false
+    this.runStarted = false
+    this.root.style.display = 'flex'
+    this.canvas.style.visibility = 'hidden'
+    this.canvas.style.pointerEvents = 'none'
+    this.showView('welcome')
+  }
+
+  private resumeGame(): void {
     this.suppressed = false
     this.audio.unlock()
     this.canvas.style.visibility = 'visible'
@@ -379,6 +434,7 @@ export class StartMenu {
   private onPointerLockChange = (): void => {
     if (this.suppressed) return
     const locked = document.pointerLockElement === this.canvas
+    if (locked) this.runStarted = true
     this.root.style.display = locked ? 'none' : 'flex'
     if (!locked) {
       this.canvas.style.visibility = 'hidden'
@@ -396,6 +452,7 @@ export class StartMenu {
 
   returnToMain(): void {
     this.suppressed = false
+    this.runStarted = false
     this.root.style.display = 'flex'
     this.canvas.style.visibility = 'hidden'
     this.canvas.style.pointerEvents = 'none'
