@@ -75,7 +75,6 @@ export const GENRES: readonly GenreDef[] = [
   },
   {
     id: 4, name: 'Детективы', tag: 'ДЕТЕКТИВ', accent: 0x705383, secondary: 0xd6bc89,
-    coverStyle: 'illustrated',
     titles: ['Дело о синем конверте', 'Последний поезд в туман', 'Тень на пятом этаже',
       'Ключ от комнаты 17', 'Город без свидетелей', 'Полночь на набережной'],
   },
@@ -93,7 +92,6 @@ export const GENRES: readonly GenreDef[] = [
   },
   {
     id: 7, name: 'Мистика', tag: 'МИСТИКА', accent: 0x42665a, secondary: 0xb296cc,
-    coverStyle: 'illustrated',
     titles: ['Дом, который помнит', 'Шёпот за дверью', 'Лунный сад',
       'Письма из ниоткуда', 'Часовня у озера', 'Тринадцатая свеча'],
   },
