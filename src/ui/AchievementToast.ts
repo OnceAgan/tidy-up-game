@@ -7,14 +7,19 @@ export class AchievementToast {
   private readonly feedback = document.createElement('div')
   private feedbackTimer = 0
   private toastTimer = 0
+  private readonly errorToast = document.createElement('div')
+  private errorTimer = 0
 
   clear(): void {
     window.clearTimeout(this.toastTimer)
     window.clearTimeout(this.feedbackTimer)
+    window.clearTimeout(this.errorTimer)
     this.queue.length = 0
     this.showing = false
     this.root.hidden = true
     this.feedback.style.display = 'none'
+    this.errorToast.style.display = 'none'
+    this.root.style.top = '22px'
   }
 
   constructor() {
@@ -48,7 +53,14 @@ export class AchievementToast {
       background: 'rgba(28,26,22,.94)', color: '#f5dfab', font: '14px Arial,sans-serif',
       pointerEvents: 'none', display: 'none', maxWidth: '85vw', textAlign: 'center' })
     this.feedback.setAttribute('role', 'status')
-    document.body.append(this.root, this.feedback)
+    this.errorToast.id = 'placement-error'
+    this.errorToast.setAttribute('role', 'alert')
+    Object.assign(this.errorToast.style, { position: 'fixed', top: '22px', left: '50%',
+      transform: 'translateX(-50%)', width: 'min(480px,calc(100vw - 32px))', boxSizing: 'border-box',
+      padding: '16px 20px', border: '1px solid #ef7777', borderLeft: '5px solid #ff6565', borderRadius: '12px',
+      background: 'linear-gradient(135deg,#582525f7,#321a1af7)', color: '#ffe4e4', font: '16px/1.45 Arial,sans-serif',
+      boxShadow: '0 12px 36px #0006', zIndex: '30', display: 'none', pointerEvents: 'none' })
+    document.body.append(this.root, this.feedback, this.errorToast)
   }
 
   show(notice: AchievementNotice): void {
@@ -61,6 +73,21 @@ export class AchievementToast {
     this.feedback.textContent = text
     this.feedback.style.display = 'block'
     this.feedbackTimer = window.setTimeout(() => { this.feedback.style.display = 'none' }, 3000)
+  }
+
+  error(text: string): void {
+    window.clearTimeout(this.errorTimer)
+    this.errorToast.replaceChildren()
+    const title = document.createElement('strong')
+    title.textContent = '⚠ Не удалось поставить кассету'
+    Object.assign(title.style, { display: 'block', marginBottom: '5px', color: '#ffb0b0' })
+    this.errorToast.append(title, document.createTextNode(text))
+    this.errorToast.style.display = 'block'
+    this.root.style.top = `${this.errorToast.getBoundingClientRect().bottom + 12}px`
+    this.errorTimer = window.setTimeout(() => {
+      this.errorToast.style.display = 'none'
+      this.root.style.top = '22px'
+    }, 4000)
   }
 
   private next(): void {

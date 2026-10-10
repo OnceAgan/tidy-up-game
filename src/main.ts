@@ -75,7 +75,7 @@ const interaction = new InteractionManager(
   audio,
 )
 interaction.setSpecialInteractions(horror.targets, target => horror.tryInteract(target))
-interaction.setOnPlacementError(message => achievementToast.hint(message))
+interaction.setOnPlacementError(message => achievementToast.error(message))
 
 function hideGameHud(): void {
   controlsHint.hide()
