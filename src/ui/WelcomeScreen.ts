@@ -1,3 +1,5 @@
+import { TOTAL_CASSETTES } from '../data/cassetteCatalog'
+
 export class WelcomeScreen {
   private readonly overlay = document.createElement('div')
   private readonly start: HTMLButtonElement
@@ -33,9 +35,9 @@ export class WelcomeScreen {
     const card = document.createElement('div')
     card.className = 'card'
     card.innerHTML = `<div class="eyebrow">ДОБРО ПОЖАЛОВАТЬ В ВИДЕОТЕКУ</div>
-      <h2 id="welcome-title">Один кот.<br>Сто двадцать кассет.</h2>
+      <h2 id="welcome-title">Один кот.<br>${TOTAL_CASSETTES} кассет.</h2>
       <p>Кот решил стать кинокритиком и сбросил всю коллекцию на пол. Рецензии мы так и не нашли. Зато теперь точно знаем: гравитация работает.</p>
-      <p class="goal">Верни все <strong>120 кассет</strong> на стеллажи по жанрам. Каждая ячейка — <strong>одна серия из пяти частей</strong>: от 1 до 5. Первой кассетой ты выбираешь серию для ячейки.<br>Заполняй ячейки и стеллажи, чтобы получать достижения и навыки.</p>
+      <p class="goal">Верни все <strong>${TOTAL_CASSETTES} кассет</strong> на стеллажи по жанрам. Каждая ячейка — <strong>одна серия из пяти частей</strong>: от 1 до 5. Первой кассетой ты выбираешь серию для ячейки.<br>Заполняй ячейки и стеллажи, чтобы получать достижения и навыки.</p>
       <p class="hint">Подсказки клавиш появятся в начале игры. Полное управление всегда доступно в меню по Esc.</p>`
     const actions = document.createElement('div')
     actions.className = 'actions'

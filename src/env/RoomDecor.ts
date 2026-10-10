@@ -21,8 +21,8 @@ export function buildRoomDecor(
   const halfD = roomDepth / 2
   const colliders: DecorColliders = []
 
-  addWallPictures(parent, halfW, halfD, wallHeight)
-  addBoostBoard(parent, halfW, halfD)
+  addWallPictures(parent, halfD, wallHeight)
+  addBoostBoard(parent, halfD)
   addWindows(parent, [
     { x: -2.4, z: -halfD + 0.11, rotY: 0 },
     { x: 2.4, z: halfD - 0.11, rotY: Math.PI },
@@ -35,14 +35,14 @@ export function buildRoomDecor(
   return colliders
 }
 
-function addWallPictures(parent: THREE.Group, halfW: number, halfD: number, wallHeight: number): void {
+function addWallPictures(parent: THREE.Group, halfD: number, wallHeight: number): void {
   const frameMat = new THREE.MeshStandardMaterial({ color: 0x8a7358, roughness: 0.55, metalness: 0.1 })
   const placements: Array<{ x: number; z: number; ry: number; seed: number; w: number; h: number; py: number }> = [
-    { x: -halfW + 0.11, z: -3.5, ry: Math.PI / 2, seed: 0, w: 0.9, h: 0.65, py: 1.85 },
-    { x: -halfW + 0.11, z: 4.2, ry: Math.PI / 2, seed: 1, w: 0.7, h: 0.95, py: 2.05 },
-    { x: halfW - 0.11, z: -2.0, ry: -Math.PI / 2, seed: 2, w: 1.0, h: 0.7, py: 1.75 },
-    { x: halfW - 0.11, z: 5.5, ry: -Math.PI / 2, seed: 3, w: 0.75, h: 0.75, py: 1.95 },
-    { x: 1.2, z: -halfD + 0.11, ry: 0, seed: 4, w: 0.85, h: 0.6, py: 2.1 },
+    { x: 3.4, z: -halfD + 0.11, ry: 0, seed: 0, w: 0.9, h: 0.65, py: 1.85 },
+    { x: -3.8, z: halfD - 0.11, ry: Math.PI, seed: 1, w: 0.7, h: 0.95, py: 2.05 },
+    { x: -0.8, z: -halfD + 0.11, ry: 0, seed: 2, w: 1.0, h: 0.7, py: 1.75 },
+    { x: 0.6, z: halfD - 0.11, ry: Math.PI, seed: 3, w: 0.75, h: 0.75, py: 1.95 },
+    { x: 3.9, z: halfD - 0.11, ry: Math.PI, seed: 4, w: 0.85, h: 0.6, py: 2.1 },
   ]
 
   for (const p of placements) {
@@ -69,13 +69,13 @@ function addWallPictures(parent: THREE.Group, halfW: number, halfD: number, wall
   void wallHeight
 }
 
-function addBoostBoard(parent: THREE.Group, halfW: number, halfD: number): void {
+function addBoostBoard(parent: THREE.Group, halfD: number): void {
   const frameMat = new THREE.MeshStandardMaterial({ color: 0x6b5344, roughness: 0.6 })
   const boardW = 0.95
   const boardH = 1.2
   const group = new THREE.Group()
-  group.position.set(-halfW + 0.11, 1.65, -2.25)
-  group.rotation.y = Math.PI / 2
+  group.position.set(1.5, 1.65, -halfD + 0.11)
+  group.rotation.y = 0
 
   const frame = new THREE.Mesh(new THREE.BoxGeometry(boardW + 0.08, boardH + 0.08, 0.05), frameMat)
   group.add(frame)
@@ -108,7 +108,7 @@ function addRug(parent: THREE.Group): void {
     }),
   )
   rug.rotation.x = -Math.PI / 2
-  rug.position.set(0, 0.018, 1.2)
+  rug.position.set(0, 0.018, 6.8)
   rug.receiveShadow = true
   parent.add(rug)
 }

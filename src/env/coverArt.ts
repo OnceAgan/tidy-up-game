@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { getGenre } from '../data/cassetteCatalog'
 import { getCoverImageUrl } from '../data/coverFiles'
+import { createOriginalCoverTexture } from './originalCoverArt'
 
 function hexToCss(hex: number): string {
   const r = (hex >> 16) & 0xff
@@ -164,6 +165,13 @@ export function createCoverTexture(
   if (entry?.ready) {
     onLoaded?.(entry.texture)
     return entry.texture
+  }
+
+  if (getGenre(genreId).coverStyle === 'illustrated') {
+    const texture = createOriginalCoverTexture(title, genreId, seriesIndex)
+    coverTextureCache.set(key, { texture, ready: true })
+    onLoaded?.(texture)
+    return texture
   }
 
   if (onLoaded) {

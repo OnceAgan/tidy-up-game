@@ -85,8 +85,8 @@ function plant(parent: THREE.Group, x: number, z: number, color: number): void {
 }
 function cabinet(parent: THREE.Group): void {
     const group = new THREE.Group();
-    group.position.set(4.48, 0, 4.3);
-    group.rotation.y = -Math.PI / 2;
+    group.position.set(-0.8, 0, 9.35);
+    group.rotation.y = Math.PI;
     parent.add(group);
     const oak = new THREE.MeshStandardMaterial({ color: 0xf0dfc5, roughness: 0.58 });
     applyFurnitureWood(oak);
@@ -132,8 +132,8 @@ function cabinet(parent: THREE.Group): void {
 }
 function clock(parent: THREE.Group): () => void {
     const group = new THREE.Group();
-    group.position.set(4.88, 2.05, 4.3);
-    group.rotation.y = -Math.PI / 2;
+    group.position.set(-0.8, 2.05, 9.88);
+    group.rotation.y = Math.PI;
     parent.add(group);
     const wood = new THREE.MeshStandardMaterial({ color: 0x74593b, roughness: 0.6 }), brass = new THREE.MeshStandardMaterial({ color: 0xa58859, metalness: 0.55, roughness: 0.45 });
     const c = document.createElement('canvas');
@@ -189,9 +189,9 @@ function clock(parent: THREE.Group): () => void {
 }
 export function buildHomeInterior(parent: THREE.Group): HomeInterior {
     cabinet(parent);
-    plant(parent, -4.38, -6.1, 0xb7866a);
-    plant(parent, 4.38, 7.9, 0xb4b9a5);
+    plant(parent, -3.9, -9.1, 0xb7866a);
+    plant(parent, 3.9, 9.1, 0xb4b9a5);
     const update = clock(parent);
     update();
-    return { update, colliders: [{ cx: 4.48, cz: 4.3, halfW: 0.64, halfD: 0.32, rotY: -Math.PI / 2 }, { cx: -4.38, cz: -6.1, halfW: 0.29, halfD: 0.29, rotY: 0 }, { cx: 4.38, cz: 7.9, halfW: 0.29, halfD: 0.29, rotY: 0 }] };
+    return { update, colliders: [{ cx: -0.8, cz: 9.35, halfW: 0.64, halfD: 0.32, rotY: Math.PI }, { cx: -3.9, cz: -9.1, halfW: 0.29, halfD: 0.29, rotY: 0 }, { cx: 3.9, cz: 9.1, halfW: 0.29, halfD: 0.29, rotY: 0 }] };
 }

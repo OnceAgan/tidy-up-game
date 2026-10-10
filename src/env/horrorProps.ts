@@ -47,8 +47,8 @@ function warningTexture(): THREE.CanvasTexture {
 export function buildForbiddenSwitch(parent: THREE.Group): { target: HorrorTarget; lever: THREE.Group } {
   const group = new THREE.Group()
   group.name = 'forbidden-switch'
-  group.position.set(-4.865, 0, 6.4)
-  group.rotation.y = Math.PI / 2
+  group.position.set(-2.5, 0, 9.865)
+  group.rotation.y = Math.PI
   parent.add(group)
   const metal = new THREE.MeshStandardMaterial({ color: 0xaaa69b, metalness: 0.25, roughness: 0.48 })
   const black = new THREE.MeshStandardMaterial({ color: 0x181b17, roughness: 0.4 })
