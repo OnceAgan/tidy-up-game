@@ -36,6 +36,9 @@ export class InteractionManager {
   private readonly audio: AudioManager | null
   private onPicked: ((cassette: Cassette) => void) | null = null
   private onPlaced: (() => void) | null = null
+  private onPlacementError: ((message: string) => void) | null = null
+
+  setOnPlacementError(fn: (message: string) => void): void { this.onPlacementError = fn }
   private specialTargets: readonly Interactable[] = []
   private onSpecialInteract: ((target: Interactable) => void) | null = null
 
@@ -170,8 +173,10 @@ export class InteractionManager {
     if (target.kind === 'slot') {
       const top = this.stack[this.stack.length - 1]
       const slot = target as ShelfSlot
-      if (top && slot.accepts(top)) {
-        this.placeInSlot(slot, top)
+      if (top) {
+        const error = slot.placementError(top)
+        if (error) this.onPlacementError?.(error)
+        else this.placeInSlot(slot, top)
       }
       return
     }
@@ -210,11 +215,8 @@ export class InteractionManager {
       }
     }
 
-    const top = this.stack[this.stack.length - 1]
-    if (top) {
-      for (const s of this.slots) {
-        if (s.accepts(top)) this.pickTargets.push(s)
-      }
+    for (const s of this.slots) {
+      if (this.topHeld || !s.isEmpty) this.pickTargets.push(s)
     }
 
     this.pickMeshes.length = 0

@@ -1,4 +1,6 @@
 import type { AudioManager } from '../audio/AudioManager'
+import { WelcomeScreen } from './WelcomeScreen'
+import { CONTROL_BINDINGS } from './ControlsHint'
 
 const MENU_BG_URL = `${import.meta.env.BASE_URL}ui/menu/menu-bg.jpg`
 
@@ -8,7 +10,7 @@ type MenuItem = {
   onClick?: () => void
 }
 
-type MenuView = 'main' | 'settings'
+type MenuView = 'main' | 'settings' | 'controls'
 
 export class StartMenu {
   private readonly root: HTMLDivElement
@@ -20,6 +22,13 @@ export class StartMenu {
   private musicToggleBtn: HTMLButtonElement | null = null
   private sfxToggleBtn: HTMLButtonElement | null = null
   private suppressed = false
+  private runStarted = false
+  private continueBtn!: HTMLButtonElement
+  private readonly welcome: WelcomeScreen
+  private readonly controlsView: HTMLDivElement
+  private onNewGame: (() => void) | null = null
+
+  setOnNewGame(fn: () => void): void { this.onNewGame = fn }
 
   constructor(canvas: HTMLElement, audio: AudioManager) {
     this.canvas = canvas
@@ -44,7 +53,9 @@ export class StartMenu {
     this.panel = this.createPanelShell()
     this.mainView = this.createMainView()
     this.settingsView = this.createSettingsView()
-    this.panel.append(this.mainView, this.settingsView)
+    this.controlsView = this.createControlsView()
+    this.welcome = new WelcomeScreen(() => this.resumeGame(), () => this.returnToMain())
+    this.panel.append(this.mainView, this.settingsView, this.controlsView)
 
     this.root.append(this.panel)
     document.body.appendChild(this.root)
@@ -103,15 +114,41 @@ export class StartMenu {
     const items: MenuItem[] = [
       { label: 'Новая игра', enabled: true, onClick: () => this.startGame() },
       { label: 'Настройки', enabled: true, onClick: () => this.showView('settings') },
-      { label: 'История версий', enabled: false },
-      { label: 'Управление', enabled: false },
+      { label: 'Управление', enabled: true, onClick: () => this.showView('controls') },
     ]
 
     view.append(title, subtitle)
+    this.continueBtn = this.createButton({ label: 'Продолжить', enabled: true, onClick: () => this.resumeGame() })
+    this.continueBtn.style.display = 'none'
+    view.appendChild(this.continueBtn)
     for (const item of items) {
       view.appendChild(this.createButton(item))
     }
 
+    return view
+  }
+
+  private createControlsView(): HTMLDivElement {
+    const view = document.createElement('div')
+    view.id = 'controls-menu'
+    Object.assign(view.style, { display: 'none', flexDirection: 'column', gap: '10px', color: '#f2ebe0' })
+    const title = document.createElement('h2')
+    title.textContent = 'Управление'
+    Object.assign(title.style, { margin: '0 0 10px', font: '28px Georgia, serif' })
+    const list = document.createElement('dl')
+    Object.assign(list.style, { display: 'grid', gridTemplateColumns: 'minmax(90px, 135px) 1fr',
+      gap: '12px 16px', margin: '0 0 12px', font: '14px/1.45 Arial, sans-serif' })
+    for (const [key, description] of CONTROL_BINDINGS) {
+      const term = document.createElement('dt')
+      term.textContent = key
+      Object.assign(term.style, { color: '#e8c96a', fontWeight: '600' })
+      const definition = document.createElement('dd')
+      definition.textContent = description
+      definition.style.margin = '0'
+      list.append(term, definition)
+    }
+    view.append(title, list, this.createButton({ label: 'Назад', enabled: true,
+      onClick: () => this.showView('main') }))
     return view
   }
 
@@ -333,6 +370,11 @@ export class StartMenu {
     this.audio.unlock()
     this.mainView.style.display = view === 'main' ? 'flex' : 'none'
     this.settingsView.style.display = view === 'settings' ? 'flex' : 'none'
+    this.controlsView.style.display = view === 'controls' ? 'flex' : 'none'
+    this.panel.style.maxWidth = view === 'controls' ? '520px' : '300px'
+    this.panel.style.maxHeight = 'calc(100vh - 40px)'
+    this.panel.style.overflowY = 'auto'
+    this.continueBtn.style.display = this.runStarted ? 'block' : 'none'
     if (view === 'settings') this.refreshSettingsToggles()
   }
 
@@ -369,6 +411,17 @@ export class StartMenu {
   }
 
   startGame(): void {
+    this.onNewGame?.()
+    this.suppressed = false
+    this.runStarted = false
+    this.root.style.display = 'none'
+    this.canvas.style.visibility = 'visible'
+    this.canvas.style.pointerEvents = 'none'
+    this.welcome.show()
+  }
+
+  private resumeGame(): void {
+    this.welcome.hide()
     this.suppressed = false
     this.audio.unlock()
     this.canvas.style.visibility = 'visible'
@@ -379,6 +432,7 @@ export class StartMenu {
   private onPointerLockChange = (): void => {
     if (this.suppressed) return
     const locked = document.pointerLockElement === this.canvas
+    if (locked) this.runStarted = true
     this.root.style.display = locked ? 'none' : 'flex'
     if (!locked) {
       this.canvas.style.visibility = 'hidden'
@@ -390,12 +444,15 @@ export class StartMenu {
 
   /** Скрыть меню навсегда (экран победы) */
   suppress(): void {
+    this.welcome.hide()
     this.suppressed = true
     this.root.style.display = 'none'
   }
 
   returnToMain(): void {
+    this.welcome.hide()
     this.suppressed = false
+    this.runStarted = false
     this.root.style.display = 'flex'
     this.canvas.style.visibility = 'hidden'
     this.canvas.style.pointerEvents = 'none'
@@ -406,5 +463,6 @@ export class StartMenu {
   dispose(): void {
     document.removeEventListener('pointerlockchange', this.onPointerLockChange)
     this.root.remove()
+    this.welcome.dispose()
   }
 }

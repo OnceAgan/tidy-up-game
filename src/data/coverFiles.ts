@@ -10,8 +10,8 @@ export function getCoverImageUrl(genreId: number, seriesIndex: number): string {
   return `${base}covers/${getCoverFileName(genreId, seriesIndex)}`
 }
 
-/** Список обложек серий — для сверки имён файлов */
-export const COVER_MANIFEST = GENRES.flatMap((genre) =>
+/** PNG covers only; illustrated series are drawn directly from originalCoverArt.ts. */
+export const COVER_MANIFEST = GENRES.filter(genre => !genre.coverStyle).flatMap((genre) =>
   genre.titles.map((title, i) => ({
     file: getCoverFileName(genre.id, i + 1),
     genre: genre.name,

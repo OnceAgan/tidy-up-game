@@ -22,6 +22,7 @@ import { AchievementManager } from './managers/AchievementManager'
 import { AchievementToast } from './ui/AchievementToast'
 import { AudioManager } from './audio/AudioManager'
 import type { Cassette } from './entities/Cassette'
+import type { ShelfSlot } from './entities/ShelfSlot'
 
 const app = document.querySelector<HTMLDivElement>('#app')
 
@@ -43,7 +44,7 @@ const gameTimer = new GameTimer()
 let endingPreview = false
 const level = new LevelManager()
 const player = new Player(engine.camera, input, level.bounds, level.colliders)
-const horrorScreen = new HorrorScreen(() => { resetRun(); startMenu.startGame() })
+const horrorScreen = new HorrorScreen(() => startMenu.startGame())
 const horror = new HorrorManager(engine.scene, level.root, engine.camera, player, audio, level.colliders, {
   onCinematic: () => {
     gameTimer.setRunning(false)
@@ -74,6 +75,7 @@ const interaction = new InteractionManager(
   audio,
 )
 interaction.setSpecialInteractions(horror.targets, target => horror.tryInteract(target))
+interaction.setOnPlacementError(message => achievementToast.error(message))
 
 function hideGameHud(): void {
   controlsHint.hide()
@@ -86,7 +88,7 @@ function hideGameHud(): void {
 }
 
 const winScreen = new WinScreen(
-  () => { resetRun(); startMenu.startGame() },
+  () => startMenu.startGame(),
   () => resetRun(),
 )
 
@@ -128,6 +130,8 @@ function resetRun(): void {
   refreshProgress()
   startMenu.returnToMain()
 }
+
+startMenu.setOnNewGame(resetRun)
 
 function prepareEndingPreview(): void {
   horror.reset()
@@ -198,6 +202,9 @@ engine.setUpdate((dt) => {
     const hovered = interaction.hoveredTarget
     if (hovered?.kind === 'cassette') {
       hoverLabel.show(hovered as Cassette)
+    } else if (hovered?.kind === 'slot' && !(hovered as ShelfSlot).isEmpty) {
+      const slot = hovered as ShelfSlot
+      hoverLabel.showText(`${slot.cassettes[0].title} · ${slot.cassettes.length}/5 частей`)
     } else if (hovered?.kind === 'switch') {
       hoverLabel.showText('Тумблер · ЛКМ — опустить')
     } else if (hovered?.kind === 'sand') {

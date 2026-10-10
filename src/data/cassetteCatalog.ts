@@ -9,6 +9,7 @@ export type GenreDef = {
   accent: number
   secondary: number
   titles: readonly string[]
+  coverStyle?: 'illustrated'
 }
 
 export const GENRES: readonly GenreDef[] = [
@@ -72,7 +73,31 @@ export const GENRES: readonly GenreDef[] = [
       'Радужный Мост',
     ],
   },
+  {
+    id: 4, name: 'Детективы', tag: 'ДЕТЕКТИВ', accent: 0x705383, secondary: 0xd6bc89,
+    titles: ['Дело о синем конверте', 'Последний поезд в туман', 'Тень на пятом этаже',
+      'Ключ от комнаты 17', 'Город без свидетелей', 'Полночь на набережной'],
+  },
+  {
+    id: 5, name: 'Приключения', tag: 'ПРИКЛЮЧЕНИЯ', accent: 0x197c83, secondary: 0xf2b071,
+    coverStyle: 'illustrated',
+    titles: ['Остров ветров', 'Карта забытого моря', 'За перевалом облаков',
+      'Сокровища красных дюн', 'Дорога к маяку', 'Экспедиция «Аврора»'],
+  },
+  {
+    id: 6, name: 'Музыка', tag: 'МУЗЫКА', accent: 0xad396c, secondary: 0x75cde0,
+    coverStyle: 'illustrated',
+    titles: ['Неон после дождя', 'Джаз на крыше', 'Сторона Б: лето',
+      'Полночный винил', 'Синтезатор мечты', 'Последний бис'],
+  },
+  {
+    id: 7, name: 'Мистика', tag: 'МИСТИКА', accent: 0x42665a, secondary: 0xb296cc,
+    titles: ['Дом, который помнит', 'Шёпот за дверью', 'Лунный сад',
+      'Письма из ниоткуда', 'Часовня у озера', 'Тринадцатая свеча'],
+  },
 ] as const
+
+export const TOTAL_CASSETTES = GENRES.reduce((total, genre) => total + genre.titles.length * PARTS_PER_SERIES, 0)
 
 export type CassetteDef = {
   genreId: number

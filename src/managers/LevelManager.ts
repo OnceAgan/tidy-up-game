@@ -4,7 +4,7 @@ import { Cassette } from '../entities/Cassette'
 import { placeCassetteOnFloor, settleFloorCassettes, type PlacedCassette } from '../entities/cassettePlacement'
 import { Shelf } from '../entities/Shelf'
 import type { ShelfSlot } from '../entities/ShelfSlot'
-import { buildCassettePool } from '../data/cassetteCatalog'
+import { buildCassettePool, GENRES } from '../data/cassetteCatalog'
 import {
   createCeilingTexture,
   createWallpaperTexture,
@@ -20,9 +20,6 @@ const ROOM_DEPTH = 20
 const WALL_HEIGHT = 3.2
 const WALL_THICKNESS = 0.2
 const SHELF_INSET_W = 4.55
-/** Север/юг: боевики и sci-fi ближе к стене */
-const SHELF_INSET_D = 9.72
-const SHELF_GENRE_IDS = [0, 1, 2, 3] as const
 
 export class LevelManager {
   private readonly homeInterior: HomeInterior
@@ -53,7 +50,7 @@ export class LevelManager {
   updateDecor(): void { this.homeInterior.update() }
 
   resetCassettes(): void {
-    for (const slot of this.slots) slot.cassettes.length = 0
+    for (const slot of this.slots) slot.reset()
     const spots = scatterSpots(this.cassettes.length)
     const placed: PlacedCassette[] = []
     this.cassettes.forEach((cassette, i) => {
@@ -124,12 +121,12 @@ export class LevelManager {
   }
 
   private buildShelves(): void {
-    const placements: Array<{ genreId: number; x: number; z: number; rot: number }> = [
-      { genreId: SHELF_GENRE_IDS[0], x: 0, z: -SHELF_INSET_D, rot: 0 },
-      { genreId: SHELF_GENRE_IDS[1], x: 0, z: SHELF_INSET_D, rot: Math.PI },
-      { genreId: SHELF_GENRE_IDS[2], x: -SHELF_INSET_W, z: 0, rot: Math.PI / 2 },
-      { genreId: SHELF_GENRE_IDS[3], x: SHELF_INSET_W, z: 0, rot: -Math.PI / 2 },
-    ]
+    const placements = GENRES.map((genre, index) => ({
+      genreId: genre.id,
+      x: index < 4 ? -SHELF_INSET_W : SHELF_INSET_W,
+      z: -6 + (index % 4) * 4,
+      rot: index < 4 ? Math.PI / 2 : -Math.PI / 2,
+    }))
 
     for (const p of placements) {
       const shelf = new Shelf(p.genreId, p.x, p.z, p.rot)
