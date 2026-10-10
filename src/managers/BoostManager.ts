@@ -4,6 +4,8 @@ import type { Shelf } from '../entities/Shelf'
 import type { ShelfSlot } from '../entities/ShelfSlot'
 
 const HIGHLIGHT_DURATION_S = 15
+const CELLS_PER_CHARGE = 3
+const MAX_HIGHLIGHT_CHARGES = 2
 function sameSeries(a: Cassette, b: Cassette): boolean {
   return a.genreId === b.genreId && a.seriesIndex === b.seriesIndex && a.title === b.title
 }
@@ -36,13 +38,16 @@ export class BoostManager {
     return this.charges > 0 ? { kind: 'ready', charges: this.charges } : { kind: 'locked' }
   }
 
-  /** Each cell awards one charge once, including cells completed during an active skill. */
+  /** First cell teaches the skill; subsequent charges require three more cells. */
   checkShelvesAfterPlace(shelves: readonly Shelf[]): void {
     for (const shelf of shelves) {
       for (const slot of shelf.slots) {
         if (!slot.isFull || this.awardedSlots.has(slot)) continue
         this.awardedSlots.add(slot)
-        this.charges++
+        const completed = this.awardedSlots.size
+        if (completed === 1 || (completed - 1) % CELLS_PER_CHARGE === 0) {
+          this.charges = Math.min(MAX_HIGHLIGHT_CHARGES, this.charges + 1)
+        }
       }
     }
   }
